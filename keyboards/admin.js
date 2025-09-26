@@ -1,15 +1,29 @@
 import { Keyboard, InlineKeyboard } from 'grammy';
-import { showAdminProducts, showAdminStats, showAllOrders } from '../handlers/admin.js';
+import { showAdminStats, showAllOrders } from '../handlers/admin.js';
 import { Menu } from '@grammyjs/menu';
 import { getCategoriesKeyboard } from './categories.js';
+import db from '../database.js';
 
 const adminMenu = new Menu('admin-menu')
         .text('📊 Статистика', async (ctx) => {
             await showAdminStats(ctx);
         })
         .row()
-        .text('📦 Заказы', async (ctx) => {
+        .text('📦 Заказы (все)', async (ctx) => {
             await showAllOrders(ctx);
+        })
+        .text('🔎 Заказы по статусу', async (ctx) => {
+            const kb = InlineKeyboard.from([
+                [
+                    InlineKeyboard.text('📝 Создан', 'admin_filter_status:created'),
+                    InlineKeyboard.text('✅ Принят', 'admin_filter_status:accepted')
+                ],
+                [
+                    InlineKeyboard.text('🚚 Исполнен', 'admin_filter_status:completed'),
+                    InlineKeyboard.text('❌ Отклонён', 'admin_filter_status:rejected')
+                ]
+            ]);
+            await ctx.reply('Выберите статус:', { reply_markup: kb });
         })
         .text('🛍️ Каталог', async (ctx) => {
                // await showCatalog(ctx);
@@ -22,15 +36,26 @@ const adminMenu = new Menu('admin-menu')
             await ctx.conversation.enter('addProduct');
         })
         .row()
+        .text('📂 Категории', async (ctx) => {
+            const categories = db.getProductCategories();
+            if (!categories || categories.length === 0) {
+                await ctx.reply('😔 Нет категорий');
+                return;
+            }
+            for (const c of categories) {
+                const kb = InlineKeyboard.from([
+                    [
+                        InlineKeyboard.text('✏️ Переименовать', `admin_edit_category:${c.id}`),
+                        InlineKeyboard.text('🗑️ Удалить', `admin_delete_category:${c.id}`)
+                    ]
+                ]);
+                await ctx.reply(`📂 ${c.name} (ID: ${c.id})`, { reply_markup: kb });
+            }
+        })
         .text('➕ Добавить категорию', async (ctx) => {
             await ctx.conversation.enter('addProductCategory');
         });
 export function getAdminKeyboard() {
-    // return Keyboard.keyboard([
-    //     ['📊 Статистика', '📦 Заказы'],
-    //     ['🛍️ Товары', '➕ Добавить товар'],
-    //     ['⬅️ Главное меню']
-    // ]).resize();
     return adminMenu;
 }
 

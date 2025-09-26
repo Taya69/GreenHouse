@@ -76,41 +76,10 @@ export async function handleCheckout(ctx) {
             await ctx.reply('📞 Для оформления заказа нам нужна ваша контактная информация.');
             await ctx.conversation.enter('getContactInfo');
         } else {
-            // await createOrder(ctx, user.id, cartItems);
+            await ctx.conversation.enter('checkoutFromCart');
         }
     } catch (error) {
         console.error('Error during checkout:', error);
-        await ctx.reply('❌ Произошла ошибка при оформлении заказа');
-    }
-}
-
-async function createOrder(ctx, userId, cartItems) {
-    const totalAmount = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    
-    await ctx.reply('💬 Хотите добавить комментарий к заказу? (Если нет, отправьте "нет")');
-    
-    const commentCtx = await ctx.conversation.wait('message:text');
-    const userComment = commentCtx.message.text.toLowerCase() === 'нет' ? '' : commentCtx.message.text;
-    
-    try {
-        const orderId = db.createOrder(userId, cartItems, totalAmount, userComment);
-        await db.clearCart(userId);
-        
-        await ctx.reply(
-            `✅ Заказ #${orderId} оформлен успешно!\n` +
-            `💵 Сумма: ${totalAmount} руб.\n` +
-            `📊 Статус: Создан`
-        );
-        
-        // Уведомление администраторов
-        for (const adminId of config.ADMIN_IDS) {
-            await ctx.api.sendMessage(
-                adminId,
-                `🛎️ Новый заказ #${orderId}\n💵 Сумма: ${totalAmount} руб.\n👤 Клиент: ${ctx.from.first_name}`
-            );
-        }
-    } catch (error) {
-        console.error('Error creating order:', error);
         await ctx.reply('❌ Произошла ошибка при оформлении заказа');
     }
 }

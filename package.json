@@ -16,6 +16,8 @@
     "dotenv": "^17.2.2",
     "grammy": "^1.38.2",
     "libphonenumber-js": "^1.12.17",
+    "node-fetch": "^3.3.2",
+    "sharp": "^0.33.4",
     "nodemon": "^3.1.10"
   }
 }

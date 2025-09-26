@@ -2,7 +2,7 @@ import db from '../database.js';
 import { getAdminKeyboard, getOrdersKeyboard, getOrderActionsKeyboard, getOrderStatusKeyboard } from '../keyboards/admin.js';
 import { getMainKeyboard } from '../keyboards/main.js';
 import config from '../config.js';
-import { isAdmin } from '../utils/helpers.js';
+import { isAdmin, getOrderStatusText } from '../utils/helpers.js';
 
 export async function showAdminPanel(ctx) {
     if (!isAdmin(ctx.from.id)) {
@@ -37,20 +37,17 @@ export async function showAdminStats(ctx) {
     message += `👥 Всего заказов: ${totalOrders}`;
 
     await ctx.reply(message, { parse_mode: 'Markdown' });
-    await ctx.reply('Главное меню:', {
-                reply_markup: getAdminKeyboard()
-        });
 }
 
 export async function showAllOrders(ctx) {
+    if (!isAdmin(ctx.from.id)) {
+        await ctx.reply('❌ У вас нет прав администратора');
+        return;
+    }
     const orders = db.getAllOrders();
     
     if (orders.length === 0) {
         await ctx.reply('📦 Нет заказов');
-        await ctx.reply('Главное меню:', {
-                reply_markup: getAdminKeyboard()
-        });
-        return;
     }
 
     for (const order of orders.slice(0, 10)) {
@@ -61,7 +58,7 @@ export async function showAllOrders(ctx) {
         message += `📞 Телефон: ${order.phone || 'не указан'}\n`;
         message += `💵 Сумма: ${order.total_amount} руб.\n`;
         message += `📅 Дата: ${new Date(order.created_at).toLocaleDateString()}\n`;
-        message += `📊 Статус: ${order.status}\n`;
+        message += `📊 Статус: ${getOrderStatusText(order.status)}\n`;
         
         if (order.user_comment) {
             message += `💬 Комментарий клиента: ${order.user_comment}\n`;
@@ -75,14 +72,45 @@ export async function showAllOrders(ctx) {
 
         orderDetails.forEach((item, index) => {
             message += `${index + 1}. ${item.name} - ${item.quantity} шт. x ${item.price} руб.\n`;
-        });  
+        });
+        console.log(order.id);  
         await ctx.reply(message, {
             parse_mode: 'Markdown',
-            reply_markup: getOrderActionsKeyboard(order.id)
+            reply_markup: getOrderStatusKeyboard(order.id)
         });  
-        await ctx.reply('Главное меню:', {
-                reply_markup: getAdminKeyboard()
+    }
+}
+
+export async function showOrdersByStatus(ctx) {
+    if (!isAdmin(ctx.from.id)) {
+        await ctx.reply('❌ У вас нет прав администратора');
+        return;
+    }
+    const status = ctx.match?.[1] || ctx.session.filterStatus;
+    if (!status) {
+        await ctx.reply('Выберите статус заказов:', {
+            reply_markup: getOrderStatusKeyboard(0)
         });
+        return;
+    }
+    const orders = db.getOrdersByStatus(status);
+    if (orders.length === 0) {
+        await ctx.reply('📦 Нет заказов с таким статусом');
+        return;
+    }
+    for (const order of orders.slice(0, 10)) {
+        const orderDetails = db.getOrderDetails(order.id);
+        let message = `📦 *Заказ #${order.id}*\n`;
+        message += `👤 Клиент: ${order.first_name} (@${order.username || 'нет'})\n`;
+        message += `📞 Телефон: ${order.phone || 'не указан'}\n`;
+        message += `💵 Сумма: ${order.total_amount} руб.\n`;
+        message += `📅 Дата: ${new Date(order.created_at).toLocaleDateString()}\n`;
+        message += `📊 Статус: ${getOrderStatusText(order.status)}\n`;
+        message += '\n*Товары:*\n';
+        orderDetails.forEach((item, index) => {
+            message += `${index + 1}. ${item.name} - ${item.quantity} шт. x ${item.price} руб.\n`;
+        });
+        await ctx.reply(message, { parse_mode: 'Markdown' });
     }
 }
 
@@ -108,28 +136,6 @@ function getStatusFromKey(key) {
     return statusMap[key] || key;
 }
 
-export async function showAdminProducts(ctx) {
-    const products = db.getProducts();
-
-    if (products.length === 0) {
-        await ctx.reply('😔 Нет товаров');
-        return;
-    }
-
-    let message = '🗑️ *Товары для удаления:*\n\n';
-    
-    for (const product of products) {
-        message += `🎁 ${product.name} - ${product.price} руб. (ID: ${product.id})\n`;
-    }
-
-    message += '\nДля удаления товара используйте команду /delete_product [ID]';
-
-    await ctx.reply(message);
-    await ctx.reply('Главное меню:', {
-                reply_markup: getAdminKeyboard()
-        });
-}
-
 export async function handleAddProduct(ctx) {
     if (!isAdmin(ctx.from.id)) {
         await ctx.reply('❌ У вас нет прав администратора');
@@ -150,28 +156,83 @@ export async function handleAddProductCategory(ctx) {
     await ctx.conversation.enter('addProductCategory');
 }
 
-export async function handleDeleteProduct(ctx) {
+export async function showAdminCategories(ctx) {
     if (!isAdmin(ctx.from.id)) {
         await ctx.reply('❌ У вас нет прав администратора');
         return;
     }
-
-    const productId = ctx.message.text.split(' ')[1];
-    
-    if (!productId) {
-        await ctx.reply('❌ Укажите ID товара: /delete_product [ID]');
+    const categories = db.getProductCategories();
+    if (!categories || categories.length === 0) {
+        await ctx.reply('😔 Нет категорий');
         return;
     }
+    let message = '📂 Категории:\n\n';
+    for (const c of categories) {
+        message += `• ${c.name} (ID: ${c.id})\n`;
+    }
+    await ctx.reply(message);
+}
 
+export async function handleInlineEditCategory(ctx) {
+    if (!isAdmin(ctx.from.id)) {
+        await ctx.answerCallbackQuery('❌ Нет прав');
+        return;
+    }
+    const categoryId = parseInt(ctx.callbackQuery.data.split(':')[1]);
+    ctx.session.editingCategoryId = categoryId;
+    await ctx.answerCallbackQuery('✏️ Редактирование категории');
+    await ctx.conversation.enter('editCategory');
+}
+
+export async function handleInlineDeleteCategory(ctx) {
+    if (!isAdmin(ctx.from.id)) {
+        await ctx.answerCallbackQuery('❌ Нет прав');
+        return;
+    }
+    const categoryId = parseInt(ctx.callbackQuery.data.split(':')[1]);
     try {
-        const result = db.deleteProduct(parseInt(productId));
-        if (result > 0) {
-            await ctx.reply('✅ Товар успешно удален');
+        const res = db.deleteProductCategory(categoryId);
+        if (res > 0) {
+            await ctx.answerCallbackQuery('✅ Категория удалена');
+            await ctx.deleteMessage().catch(() => {});
         } else {
-            await ctx.reply('❌ Товар с таким ID не найден');
+            await ctx.answerCallbackQuery('❌ Категория не найдена');
+        }
+    } catch (e) {
+        console.error('Error deleting category:', e);
+        await ctx.answerCallbackQuery('❌ Ошибка удаления');
+    }
+}
+
+export async function handleInlineDeleteProduct(ctx) {
+    if (!isAdmin(ctx.from.id)) {
+        await ctx.answerCallbackQuery('❌ Нет прав');
+        return;
+    }
+    const productId = parseInt(ctx.callbackQuery.data.split(':')[1]);
+    try {
+        const result = db.deleteProduct(productId);
+        if (result > 0) {
+            await ctx.answerCallbackQuery('✅ Товар удален');
+            await ctx.deleteMessage();
+        } else {
+            await ctx.answerCallbackQuery('❌ Товар не найден');
         }
     } catch (error) {
-        console.error('Error deleting product:', error);
-        await ctx.reply('❌ Ошибка при удалении товара');
+        console.error('Error inline deleting product:', error);
+        await ctx.answerCallbackQuery('❌ Ошибка удаления');
     }
+}
+
+export async function handleInlineEditProduct(ctx) {
+    if (!isAdmin(ctx.from.id)) {
+        await ctx.answerCallbackQuery('❌ Нет прав');
+        return;
+    }
+    const productId = parseInt(ctx.callbackQuery.data.split(':')[1]);
+    console.log('handleInlineEditProduct', productId);
+    // Persist product id into both ctx.session and conversation.session for reliability
+    ctx.session.editingProductId = productId;
+    await ctx.answerCallbackQuery('✏️ Редактирование товара');
+    await ctx.conversation.enter('editProduct');
 }

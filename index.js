@@ -32,18 +32,25 @@ import {
     showAdminPanel,
     showAdminStats,
     showAllOrders,
-    handleOrderStatusChange,
-    showAdminProducts,
+    showOrdersByStatus,
+    handleOrderStatusChange, 
     handleAddProduct,
-    handleDeleteProduct,
-    handleAddProductCategory
+    handleInlineDeleteProduct,
+    handleInlineEditProduct,
+    handleAddProductCategory,
+    showAdminCategories,
+    handleInlineEditCategory,
+    handleInlineDeleteCategory
 } from './handlers/admin.js';
 
 import {
     addProduct,
     addProductCategory,
     getContactInfo,
-    updateOrderStatus
+    checkoutFromCart,
+    editProduct,
+    updateOrderStatus,
+    editCategory
 } from './handlers/conversations.js';
 
 import { getMainKeyboard } from './keyboards/main.js';
@@ -57,11 +64,41 @@ dotenv.config();
 // Инициализация бота
 export const bot = new Bot(process.env.BOT_API_KEY);
 
+// Bot commands (menus)
+const userCommands = [
+    { command: 'menu', description: 'Главное меню' },
+    { command: 'catalog', description: 'Каталог товаров' },
+    { command: 'cart', description: 'Корзина' },
+    { command: 'orders', description: 'Мои заказы' }
+];
+
+const adminCommands = [
+    { command: 'admin', description: 'Главное меню' },
+    { command: 'catalog', description: 'Каталог товаров' },
+    // { command: 'cart', description: 'Корзина' },
+    { command: 'orders', description: 'Мои заказы' },
+    { command: 'admin', description: 'Админ панель' },
+    { command: 'stats', description: 'Статистика' },
+    { command: 'orders_all', description: 'Все заказы' },    
+    { command: 'add_product', description: 'Добавить товар' },
+    { command: 'add_category', description: 'Добавить категорию' } 
+];
+
+async function setCommandsForUser(ctx) {
+    try {
+        const commands = isAdmin(ctx.from.id) ? adminCommands : userCommands;
+        await bot.api.setMyCommands(commands, { scope: { type: 'chat', chat_id: ctx.chat.id } });
+    } catch (e) {
+        console.error('Failed to set commands:', e);
+    }
+}
+
 // Middleware
 bot.use(session({
     initial: () => ({
         cartItems: [],
-        editingOrder: {}
+        editingOrder: {},
+        editingProductId: null
     })
 }));
 
@@ -71,6 +108,9 @@ bot.use(createConversation(addProduct));
 bot.use(createConversation(addProductCategory));
 // bot.use(addProduct);
 bot.use(createConversation(getContactInfo));
+bot.use(createConversation(checkoutFromCart));
+bot.use(createConversation(editProduct));
+bot.use(createConversation(editCategory));
 // bot.use(getContactInfo);
 bot.use(createConversation(updateOrderStatus));
 // bot.use(updateOrderStatus);
@@ -83,9 +123,25 @@ bot.use(getMainKeyboard());
 bot.use(getAdminKeyboard());
 
 // Команды
-bot.command('start', handleStart);
-bot.command('menu', handleMainMenu);
-bot.command('delete_product', handleDeleteProduct);
+bot.command('start', async (ctx) => { await setCommandsForUser(ctx); return handleStart(ctx); });
+bot.command('menu', async (ctx) => { await setCommandsForUser(ctx); return handleMainMenu(ctx); });
+bot.command('catalog', async (ctx) => {
+    await ctx.reply("Выберите категорию товаров:", { reply_markup: getCategoriesKeyboard() });
+});
+bot.command('cart', showCart);
+bot.command('orders', showUserOrders);
+bot.command('admin', showAdminPanel);
+bot.command('stats', showAdminStats);
+bot.command('orders_all', showAllOrders);
+bot.callbackQuery(/^admin_filter_status:(.*)$/, async (ctx) => {
+    const status = ctx.match[1];
+    ctx.session.filterStatus = status;
+    await ctx.deleteMessage().catch(() => {});
+    await showOrdersByStatus(ctx);
+});
+bot.command('categories', showAdminCategories);
+bot.command('add_product', handleAddProduct);
+bot.command('add_category', handleAddProductCategory);
 
 // Текстовые сообщения
 // bot.hears('🚀 Start', handleStartButton);
@@ -96,7 +152,6 @@ bot.hears('👑 Админ панель', showAdminPanel);
 bot.hears('⬅️ Главное меню', handleMainMenu);
 bot.hears('📊 Статистика', showAdminStats);
 bot.hears('📦 Заказы', showAllOrders);
-bot.hears('🛍️ Товары', showAdminProducts);
 bot.hears('➕ Добавить товар', handleAddProduct);
 bot.hears('➕ Добавить категорию', handleAddProductCategory);
 bot.hears('⬅️ Назад', handleMainMenu);
@@ -130,6 +185,10 @@ bot.callbackQuery(/^remove_from_cart:/, handleRemoveFromCart);
 bot.callbackQuery('clear_cart', handleClearCart);
 bot.callbackQuery('checkout', handleCheckout);
 bot.callbackQuery(/^admin_set_status:/, handleOrderStatusChange);
+bot.callbackQuery(/^admin_delete_product:/, handleInlineDeleteProduct);
+bot.callbackQuery(/^admin_edit_product:/, handleInlineEditProduct);
+bot.callbackQuery(/^admin_delete_category:/, handleInlineDeleteCategory);
+bot.callbackQuery(/^admin_edit_category:/, handleInlineEditCategory);
 bot.callbackQuery(/category_(\d+)/, showCatalog); 
 
 

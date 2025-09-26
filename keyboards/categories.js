@@ -6,6 +6,9 @@ export function getCategoriesKeyboard() {
   const keyboard = new InlineKeyboard();
   
   const categories = db.getProductCategories();
+  // Кнопка для показа всех товаров во всех категориях
+  keyboard.text('Все товары', 'category_0');
+  keyboard.row();
   categories.forEach((category, index) => {
     if (index % 2 === 0 && index > 0) {
       keyboard.row();

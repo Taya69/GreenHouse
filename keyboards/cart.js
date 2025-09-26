@@ -17,7 +17,7 @@ export function getCartKeyboard(cartItems) {
     ]);
 
     keyboard.push([
-        InlineKeyboard.text('🛍️ Продолжить покупки', 'back_to_catalog'),
+        InlineKeyboard.text('🛍️ Продолжить покупки', 'show_categories'),
         InlineKeyboard.text('🏠 Главное меню', 'main_menu')
     ]);
 

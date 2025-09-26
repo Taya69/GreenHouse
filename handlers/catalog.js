@@ -1,14 +1,17 @@
 import db from '../database.js';
+import { InputFile } from 'grammy';
 import { getCatalogNavigationKeyboard, getProductKeyboard } from '../keyboards/catalog.js';
 import { getMainKeyboard } from '../keyboards/main.js';
 import config from '../config.js';
+import { isAdmin } from '../utils/helpers.js';
+import { resizeImageFromUrl, safeUnlink } from '../utils/image.js';
 
 export async function showCatalog(ctx, page = 0) {
     try {
         const data = ctx.callbackQuery.data;
         const categoryId = parseInt(data.split('_')[1]);
 
-        const products = db.getProducts(categoryId);
+        const products = isAdmin(ctx.from.id) ? db.getProductsAny(categoryId) : db.getProducts(categoryId);
         // const pagination = paginateArray(products, 1, config.PRODUCTS_PER_PAGE);
             
             // Показываем заголовок с категорией
@@ -25,13 +28,30 @@ export async function showCatalog(ctx, page = 0) {
                 message += `📝 ${product.description}\n\n`;
 
                 const keyboard = getCatalogNavigationKeyboard(product.id, categoryId);
+                if (isAdmin(ctx.from.id)) {
+                    keyboard.add(
+                        { text: '✏️ Редактировать', callback_data: `admin_edit_product:${product.id}` },
+                        { text: '🗑️ Удалить', callback_data: `admin_delete_product:${product.id}` }
+                    );
+                }
 
                 if (product.image_url) {
-                    await ctx.replyWithPhoto(product.image_url, {
-                        caption: message,
-                        parse_mode: 'Markdown',
-                        reply_markup: keyboard
-                    });
+                    try {
+                        const resizedPath = await resizeImageFromUrl(product.image_url, 320);
+                        await ctx.replyWithPhoto(new InputFile(resizedPath), {
+                            caption: message,
+                            parse_mode: 'Markdown',
+                            reply_markup: keyboard
+                        });
+                        await safeUnlink(resizedPath);
+                    } catch (e) {
+                        console.error('Image resize failed, sending original:', e);
+                        await ctx.replyWithPhoto(product.image_url, {
+                            caption: message,
+                            parse_mode: 'Markdown',
+                            reply_markup: keyboard
+                        });
+                    }
                 } else {
                     await ctx.reply(message, {
                         parse_mode: 'Markdown',

@@ -1,4 +1,5 @@
 import db from '../database.js';
+import { getOrderStatusText } from '../utils/helpers.js';
 
 export async function showUserOrders(ctx) {
     try {
@@ -16,7 +17,7 @@ export async function showUserOrders(ctx) {
             let message = `📦 *Заказ #${order.id}*\n`;
             message += `💵 Сумма: ${order.total_amount} руб.\n`;
             message += `📅 Дата: ${new Date(order.created_at).toLocaleDateString()}\n`;
-            message += `📊 Статус: ${order.status}\n`;
+            message += `📊 Статус: ${getOrderStatusText(order.status)}\n`;
             
             if (order.user_comment) {
                 message += `💬 Ваш комментарий: ${order.user_comment}\n`;

@@ -111,13 +111,23 @@ class ShopDatabase {
             
             // Product statements
             getProducts: this.db.prepare(`
-                SELECT * FROM products 
-                WHERE is_available = TRUE 
-                AND (category_id = ? OR ? IS NULL)
-                ORDER BY created_at DESC
+                SELECT p.*, c.name AS category_name 
+                FROM products p
+                LEFT JOIN categories c ON p.category_id = c.id
+                WHERE p.is_available = TRUE 
+                AND (p.category_id = ? OR ? IS NULL)
+                ORDER BY p.created_at DESC
             `),
-            getAllProducts: this.db.prepare('SELECT * FROM products ORDER BY created_at DESC'),
-            getProductById: this.db.prepare('SELECT * FROM products WHERE id = ? AND is_available = TRUE'),
+            getProductsAny: this.db.prepare(`
+                SELECT p.*, c.name AS category_name 
+                FROM products p
+                LEFT JOIN categories c ON p.category_id = c.id
+                WHERE (p.category_id = ? OR ? IS NULL)
+                ORDER BY p.created_at DESC
+            `),
+            getAllProducts: this.db.prepare('SELECT p.*, c.name AS category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id ORDER BY p.created_at DESC'),
+            getAllAvailableProducts: this.db.prepare('SELECT p.*, c.name AS category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.is_available = TRUE ORDER BY p.created_at DESC'),
+            getProductById: this.db.prepare('SELECT p.*, c.name AS category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ? AND p.is_available = TRUE'),
             addProduct: this.db.prepare(`
                 INSERT INTO products (name, description, price, category_id, image_url, stock) 
                 VALUES (?, ?, ?, ?, ?, ?)
@@ -167,6 +177,13 @@ class ShopDatabase {
                 JOIN users u ON o.user_id = u.id 
                 ORDER BY o.created_at DESC
             `),
+            getOrdersByStatus: this.db.prepare(`
+                SELECT o.*, u.first_name, u.username, u.phone 
+                FROM orders o 
+                JOIN users u ON o.user_id = u.id 
+                WHERE o.status = ?
+                ORDER BY o.created_at DESC
+            `),
             getOrderById: this.db.prepare('SELECT * FROM orders WHERE id = ?'),
             getOrderDetails: this.db.prepare(`
                 SELECT oi.*, p.name, p.image_url 
@@ -199,6 +216,12 @@ class ShopDatabase {
             ),
             addProductCategory: this.db.prepare(
                 'INSERT INTO Categories (name) VALUES (?)'
+            ),
+            updateCategory: this.db.prepare(
+                'UPDATE Categories SET name = ? WHERE id = ?'
+            ),
+            deleteCategory: this.db.prepare(
+                'DELETE FROM Categories WHERE id = ?'
             )
         };
     }
@@ -231,9 +254,16 @@ class ShopDatabase {
     getProducts(category) {
         // return this.stmts.getAllProducts.all();
         if (category === 0 || category === null) {
-            return this.stmts.getAllProducts.all();
+            return this.stmts.getAllAvailableProducts.all();
         }
         return this.stmts.getProducts.all(category, category);
+    }
+
+    getProductsAny(category) {
+        if (category === 0 || category === null) {
+            return this.stmts.getAllProducts.all();
+        }
+        return this.stmts.getProductsAny.all(category, category);
     }
 
     getAllProducts() {
@@ -319,6 +349,10 @@ class ShopDatabase {
         return this.stmts.getAllOrders.all();
     }
 
+    getOrdersByStatus(status) {
+        return this.stmts.getOrdersByStatus.all(status);
+    }
+
     getOrderById(orderId) {
         return this.stmts.getOrderById.get(orderId);
     }
@@ -352,6 +386,16 @@ class ShopDatabase {
     addProductCategory(categoryData) {
         const result = this.stmts.addProductCategory.run(categoryData.name);
         return result.lastInsertRowid;
+    }
+
+    updateProductCategory(categoryId, name) {
+        const result = this.stmts.updateCategory.run(name, categoryId);
+        return result.changes;
+    }
+
+    deleteProductCategory(categoryId) {
+        const result = this.stmts.deleteCategory.run(categoryId);
+        return result.changes;
     }
 
     close() {
