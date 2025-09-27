@@ -43,3 +43,23 @@ export function getCategoriesInlineKeyboard() {
     
     return InlineKeyboard.from(keyboard);
 }
+
+export function getCategoryManagementKeyboard(categoryId) {
+  return InlineKeyboard.from([
+      [
+          InlineKeyboard.text('✏️ Редактировать', `admin_edit_category:${categoryId}`),
+          InlineKeyboard.text('🗑️ Удалить', `admin_delete_category:${categoryId}`)
+      ]
+  ]);
+}
+
+export function getCategoriesManagementKeyboard() {
+  return InlineKeyboard.from([
+      [
+          InlineKeyboard.text('➕ Добавить категорию', 'admin_add_category')
+      ],
+      [
+          InlineKeyboard.text('🏠 Главное меню', 'main_menu')
+      ]
+  ])
+}

@@ -137,6 +137,9 @@ class ShopDatabase {
                 UPDATE products SET name = ?, description = ?, price = ?, category_id = ?, 
                 image_url = ?, stock = ?, is_available = ? WHERE id = ?
             `),
+            updateProductStock: this.db.prepare(`
+                UPDATE products SET stock = ? WHERE id = ?
+            `),
             
             // Cart statements
             getCart: this.db.prepare(`
@@ -222,7 +225,8 @@ class ShopDatabase {
             ),
             deleteCategory: this.db.prepare(
                 'DELETE FROM Categories WHERE id = ?'
-            )
+            ),
+            getAdmins: this.db.prepare('SELECT * FROM users WHERE is_admin = TRUE')
         };
     }
 
@@ -288,6 +292,11 @@ class ShopDatabase {
 
     deleteProduct(productId) {
         const result = this.stmts.deleteProduct.run(productId);
+        return result.changes;
+    }
+
+    updateProductStock(productId, newStock) {
+        const result = this.stmts.updateProductStock.run(newStock, productId);
         return result.changes;
     }
 
@@ -396,6 +405,10 @@ class ShopDatabase {
     deleteProductCategory(categoryId) {
         const result = this.stmts.deleteCategory.run(categoryId);
         return result.changes;
+    }
+
+    getAdmins() {
+        return this.stmts.getAdmins.all();
     }
 
     close() {

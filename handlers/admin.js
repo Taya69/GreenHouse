@@ -1,8 +1,12 @@
 import db from '../database.js';
 import { getAdminKeyboard, getOrdersKeyboard, getOrderActionsKeyboard, getOrderStatusKeyboard } from '../keyboards/admin.js';
+import { getAdminProductKeyboard } from '../keyboards/catalog.js';
+import { getCategoryManagementKeyboard, getCategoriesManagementKeyboard } from '../keyboards/categories.js';
 import { getMainKeyboard } from '../keyboards/main.js';
 import config from '../config.js';
 import { isAdmin, getOrderStatusText } from '../utils/helpers.js';
+import { escapeMarkdown } from '../utils/markdown.js';
+import { resizeImageFromUrl } from '../utils/image.js';
 
 export async function showAdminPanel(ctx) {
     if (!isAdmin(ctx.from.id)) {
@@ -73,7 +77,8 @@ export async function showAllOrders(ctx) {
         orderDetails.forEach((item, index) => {
             message += `${index + 1}. ${item.name} - ${item.quantity} шт. x ${item.price} руб.\n`;
         });
-        console.log(order.id);  
+        // console.log(order.id);
+        message = escapeMarkdown(message);  
         await ctx.reply(message, {
             parse_mode: 'Markdown',
             reply_markup: getOrderStatusKeyboard(order.id)
@@ -110,6 +115,7 @@ export async function showOrdersByStatus(ctx) {
         orderDetails.forEach((item, index) => {
             message += `${index + 1}. ${item.name} - ${item.quantity} шт. x ${item.price} руб.\n`;
         });
+        message = escapeMarkdown(message);
         await ctx.reply(message, { parse_mode: 'Markdown' });
     }
 }
@@ -156,6 +162,17 @@ export async function handleAddProductCategory(ctx) {
     await ctx.conversation.enter('addProductCategory');
 }
 
+export async function handleAddCategory(ctx) {
+    if (!isAdmin(ctx.from.id)) {
+        await ctx.reply('❌ У вас нет прав администратора');
+        return;
+    }
+    await ctx.reply('➕ *Добавление новой категории*\n\nВведите название новой категории:', {
+        parse_mode: 'Markdown'
+    });
+    await ctx.conversation.enter('addProductCategory');
+}
+
 export async function showAdminCategories(ctx) {
     if (!isAdmin(ctx.from.id)) {
         await ctx.reply('❌ У вас нет прав администратора');
@@ -163,14 +180,28 @@ export async function showAdminCategories(ctx) {
     }
     const categories = db.getProductCategories();
     if (!categories || categories.length === 0) {
-        await ctx.reply('😔 Нет категорий');
+        await ctx.reply('😔 Нет категорий', {
+            reply_markup: getCategoriesManagementKeyboard()
+        });
         return;
     }
-    let message = '📂 Категории:\n\n';
-    for (const c of categories) {
-        message += `• ${c.name} (ID: ${c.id})\n`;
+    
+    // Показываем заголовок
+    await ctx.reply('📂 *Управление категориями*\n\nВыберите категорию для редактирования:', {
+        parse_mode: 'Markdown',
+        reply_markup: getCategoriesManagementKeyboard()
+    });
+    
+    // Показываем каждую категорию с кнопками управления
+    for (const category of categories) {
+        const message = `📂 *${category.name}*\nID: ${category.id}`;
+        const keyboard = getCategoryManagementKeyboard(category.id);
+        
+        await ctx.reply(message, {
+            parse_mode: 'Markdown',
+            reply_markup: keyboard
+        });
     }
-    await ctx.reply(message);
 }
 
 export async function handleInlineEditCategory(ctx) {
@@ -179,8 +210,18 @@ export async function handleInlineEditCategory(ctx) {
         return;
     }
     const categoryId = parseInt(ctx.callbackQuery.data.split(':')[1]);
+    const category = db.getProductCategoryById(categoryId);
+    
+    if (!category) {
+        await ctx.answerCallbackQuery('❌ Категория не найдена');
+        return;
+    }
+    
     ctx.session.editingCategoryId = categoryId;
     await ctx.answerCallbackQuery('✏️ Редактирование категории');
+    await ctx.reply(`✏️ *Редактирование категории*\n\nТекущее название: *${category.name}*\n\nВведите новое название категории:`, {
+        parse_mode: 'Markdown'
+    });
     await ctx.conversation.enter('editCategory');
 }
 
@@ -190,13 +231,29 @@ export async function handleInlineDeleteCategory(ctx) {
         return;
     }
     const categoryId = parseInt(ctx.callbackQuery.data.split(':')[1]);
+    const category = db.getProductCategoryById(categoryId);
+    
+    if (!category) {
+        await ctx.answerCallbackQuery('❌ Категория не найдена');
+        return;
+    }
+    
     try {
+        // Проверяем, есть ли товары в этой категории
+        const products = db.getProductsAny(categoryId);
+        if (products && products.length > 0) {
+            await ctx.answerCallbackQuery('❌ Нельзя удалить категорию с товарами');
+            return;
+        }
+        
         const res = db.deleteProductCategory(categoryId);
         if (res > 0) {
             await ctx.answerCallbackQuery('✅ Категория удалена');
-            await ctx.deleteMessage().catch(() => {});
+            await ctx.editMessageText(`🗑️ *Категория "${category.name}" удалена*`, {
+                parse_mode: 'Markdown'
+            });
         } else {
-            await ctx.answerCallbackQuery('❌ Категория не найдена');
+            await ctx.answerCallbackQuery('❌ Ошибка удаления');
         }
     } catch (e) {
         console.error('Error deleting category:', e);
@@ -235,4 +292,105 @@ export async function handleInlineEditProduct(ctx) {
     ctx.session.editingProductId = productId;
     await ctx.answerCallbackQuery('✏️ Редактирование товара');
     await ctx.conversation.enter('editProduct');
+}
+
+export async function handleIncreaseStock(ctx) {
+    if (!isAdmin(ctx.from.id)) {
+        await ctx.answerCallbackQuery('❌ У вас нет прав администратора');
+        return;
+    }
+    
+    const productId = parseInt(ctx.callbackQuery.data.split(':')[1]);
+    const product = db.getProductById(productId);
+    
+    if (!product) {
+        await ctx.answerCallbackQuery('❌ Товар не найден');
+        return;
+    }
+    
+    const newStock = product.stock + 1;
+    const result = db.updateProductStock(productId, newStock);
+    
+    if (result > 0) {
+        await ctx.answerCallbackQuery(`✅ Количество увеличено до ${newStock} шт.`);
+        // Обновляем сообщение с новым количеством
+        await updateProductMessage(ctx, productId);
+    } else {
+        await ctx.answerCallbackQuery('❌ Ошибка обновления');
+    }
+}
+
+export async function handleDecreaseStock(ctx) {
+    if (!isAdmin(ctx.from.id)) {
+        await ctx.answerCallbackQuery('❌ У вас нет прав администратора');
+        return;
+    }
+    
+    const productId = parseInt(ctx.callbackQuery.data.split(':')[1]);
+    const product = db.getProductById(productId);
+    
+    if (!product) {
+        await ctx.answerCallbackQuery('❌ Товар не найден');
+        return;
+    }
+    
+    if (product.stock <= 0) {
+        await ctx.answerCallbackQuery('❌ Количество не может быть отрицательным');
+        return;
+    }
+    
+    const newStock = product.stock - 1;
+    const result = db.updateProductStock(productId, newStock);
+    
+    if (result > 0) {
+        await ctx.answerCallbackQuery(`✅ Количество уменьшено до ${newStock} шт.`);
+        // Обновляем сообщение с новым количеством
+        await updateProductMessage(ctx, productId);
+    } else {
+        await ctx.answerCallbackQuery('❌ Ошибка обновления');
+    }
+}
+
+async function updateProductMessage(ctx, productId) {
+    try {
+        const product = db.getProductById(productId);
+        if (!product) return;
+        
+        let message = `🎁 *${product.name}*\n`;
+        message += `💰 Цена: ${product.price} руб.\n`;
+        message += `📦 В наличии: ${product.stock} шт.\n`;
+        if (product.category_name) {
+            message += `📂 Категория: ${product.category_name}\n`;
+        }
+        message += `📝 ${product.description}\n\n`;
+        
+        // Получаем категорию из контекста или из продукта
+        const categoryId = product.category_id;
+        
+        const keyboard = getAdminProductKeyboard(product, categoryId);
+        
+        // if (product.image_url) {
+        //     try {
+        //         const resizedPath = await resizeImageFromUrl(product.image_url, 320);
+        //         await ctx.editMessageCaption(message, {
+        //             parse_mode: 'Markdown',
+        //             reply_markup: keyboard
+        //         });
+        //         await safeUnlink(resizedPath);
+        //     } catch (e) {
+        //         console.error('Image resize failed, updating original:', e);
+        //         await ctx.editMessageCaption(message, {
+        //             parse_mode: 'Markdown',
+        //             reply_markup: keyboard
+        //         });
+        //     }
+        // } else {
+            await ctx.editMessageText(message, {
+                parse_mode: 'Markdown',
+                reply_markup: keyboard
+            });
+        // }
+    } catch (error) {
+        console.error('Error updating product message:', error);
+    }
 }

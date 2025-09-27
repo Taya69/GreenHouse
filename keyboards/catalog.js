@@ -29,11 +29,11 @@ import { Keyboard, InlineKeyboard } from 'grammy';
 //     return InlineKeyboard.from(keyboard);
 // }
 
-export function getCatalogNavigationKeyboard(productId = null, categoryId = null) {
+export function getCatalogNavigationKeyboard(product = null, categoryId = null) {
     const keyboard = []; 
-    if (productId) {
+    if (product) {
         keyboard.push([
-            InlineKeyboard.text('➕ Добавить в корзину', `add_to_cart:${productId}`)
+            InlineKeyboard.text('➕ Добавить в корзину', `add_to_cart:${product.id}`)
         ]);
     }
 
@@ -49,7 +49,12 @@ export function getCatalogNavigationKeyboard(productId = null, categoryId = null
     keyboard.push(navButtons);
     keyboard.push([
         InlineKeyboard.text('🏠 Главное меню', 'main_menu')
-    ]);
+    ])
+    if (product.image_url) {
+        keyboard.push([
+            InlineKeyboard.webApp('🖼️ Посмотреть с фото', product.image_url)
+        ]);
+    }
 
     return InlineKeyboard.from(keyboard);
 }
@@ -65,4 +70,48 @@ export function getProductKeyboard(productId) {
             InlineKeyboard.text('🏠 Главное меню', 'main_menu')
         ]
     ]);
+}
+
+export function getAdminProductKeyboard(product, categoryId = null) {
+    const keyboard = [];
+    
+    // Кнопки изменения количества для администратора
+    keyboard.push([
+        InlineKeyboard.text('➖', `admin_decrease_stock:${product.id}`),
+        InlineKeyboard.text(`📦 ${product.stock}`, 'noop'),
+        InlineKeyboard.text('➕', `admin_increase_stock:${product.id}`)
+    ]);
+    
+    // Обычные кнопки для пользователей
+    keyboard.push([
+        InlineKeyboard.text('➕ Добавить в корзину', `add_to_cart:${product.id}`)
+    ]);
+
+    // Кнопки навигации
+    const navButtons = [];
+    if (categoryId) {
+        navButtons.push(InlineKeyboard.text('📂 Все категории', 'show_categories'));
+    } else {
+        navButtons.push(InlineKeyboard.text('📂 Категории', 'show_categories'));
+    }
+    navButtons.push(InlineKeyboard.text('🛒 Корзина', 'show_cart'));
+    
+    keyboard.push(navButtons);
+    keyboard.push([
+        InlineKeyboard.text('🏠 Главное меню', 'main_menu')
+    ]);
+    
+    // Кнопки администратора
+    keyboard.push([
+        InlineKeyboard.text('✏️ Редактировать', `admin_edit_product:${product.id}`),
+        InlineKeyboard.text('🗑️ Удалить', `admin_delete_product:${product.id}`)
+    ]);
+    
+    if (product.image_url) {
+        keyboard.push([
+            InlineKeyboard.webApp('🖼️ Посмотреть с фото', product.image_url)
+        ]);
+    }
+
+    return InlineKeyboard.from(keyboard);
 }

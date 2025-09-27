@@ -66,6 +66,77 @@ export async function handleClearCart(ctx) {
     }
 }
 
+export async function handleCartIncrease(ctx) {
+    try {
+        const productId = parseInt(ctx.callbackQuery.data.split(':')[1]);
+        const user = db.getUser(ctx.from.id);
+        const product = db.getProductById(productId);
+        
+        if (!product) {
+            await ctx.answerCallbackQuery('❌ Товар не найден');
+            return;
+        }
+
+        const cartItem = db.getCartItem(user.id, productId);
+        
+        if (!cartItem) {
+            await ctx.answerCallbackQuery('❌ Товар не найден в корзине');
+            return;
+        }
+
+        // Проверяем, не превышает ли количество доступное на складе
+        if (cartItem.quantity >= product.stock) {
+            await ctx.answerCallbackQuery('❌ Недостаточно товара на складе');
+            return;
+        }
+
+        // Увеличиваем количество
+        const newQuantity = cartItem.quantity + 1;
+        db.updateCartQuantity(user.id, productId, newQuantity);
+        
+        await ctx.answerCallbackQuery(`✅ Количество увеличено до ${newQuantity} шт.`);
+        
+        // Обновляем сообщение корзины
+        await ctx.deleteMessage();
+        await showCart(ctx);
+    } catch (error) {
+        console.error('Error increasing cart quantity:', error);
+        await ctx.answerCallbackQuery('❌ Ошибка при изменении количества');
+    }
+}
+
+export async function handleCartDecrease(ctx) {
+    try {
+        const productId = parseInt(ctx.callbackQuery.data.split(':')[1]);
+        const user = db.getUser(ctx.from.id);
+        
+        const cartItem = db.getCartItem(user.id, productId);
+        
+        if (!cartItem) {
+            await ctx.answerCallbackQuery('❌ Товар не найден в корзине');
+            return;
+        }
+
+        if (cartItem.quantity <= 1) {
+            await ctx.answerCallbackQuery('❌ Минимальное количество: 1 шт.');
+            return;
+        }
+
+        // Уменьшаем количество
+        const newQuantity = cartItem.quantity - 1;
+        db.updateCartQuantity(user.id, productId, newQuantity);
+        
+        await ctx.answerCallbackQuery(`✅ Количество уменьшено до ${newQuantity} шт.`);
+        
+        // Обновляем сообщение корзины
+        await ctx.deleteMessage();
+        await showCart(ctx);
+    } catch (error) {
+        console.error('Error decreasing cart quantity:', error);
+        await ctx.answerCallbackQuery('❌ Ошибка при изменении количества');
+    }
+}
+
 export async function handleCheckout(ctx) {
     try {
         const user = db.getUser(ctx.from.id);

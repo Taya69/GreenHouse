@@ -15,7 +15,8 @@ export function getOrderStatusText(status) {
         'created': 'Создан',
         'accepted': 'Принят', 
         'completed': 'Исполнен',
-        'rejected': 'Отклонён'
+        'rejected': 'Отклонён',
+        'cancelled': 'Отменён'
     };
     return statusMap[status] || status;
 }

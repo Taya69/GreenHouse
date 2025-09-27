@@ -15,18 +15,20 @@ import {
 import {
     showCatalog,
     handleAddToCart,
-    handleCatalogNavigation,
-    handleBackToCatalog
+    handleCatalogNavigation
+
 } from './handlers/catalog.js';
 
 import {
     showCart,
     handleRemoveFromCart,
     handleClearCart,
-    handleCheckout
+    handleCheckout,
+    handleCartIncrease,
+    handleCartDecrease
 } from './handlers/cart.js';
 
-import { showUserOrders } from './handlers/orders.js';
+import { showUserOrders, handleUserOrderStatusFilter, handleUserCancelOrder } from './handlers/orders.js';
 
 import {
     showAdminPanel,
@@ -40,7 +42,10 @@ import {
     handleAddProductCategory,
     showAdminCategories,
     handleInlineEditCategory,
-    handleInlineDeleteCategory
+    handleInlineDeleteCategory,
+    handleIncreaseStock,
+    handleDecreaseStock,
+    handleAddCategory
 } from './handlers/admin.js';
 
 import {
@@ -182,6 +187,8 @@ bot.callbackQuery('show_categories', async (ctx) => {
 bot.callbackQuery(/^add_to_cart:/, handleAddToCart);
 bot.callbackQuery(/^catalog_page:/, handleCatalogNavigation);
 bot.callbackQuery(/^remove_from_cart:/, handleRemoveFromCart);
+bot.callbackQuery(/^cart_increase:/, handleCartIncrease);
+bot.callbackQuery(/^cart_decrease:/, handleCartDecrease);
 bot.callbackQuery('clear_cart', handleClearCart);
 bot.callbackQuery('checkout', handleCheckout);
 bot.callbackQuery(/^admin_set_status:/, handleOrderStatusChange);
@@ -189,6 +196,12 @@ bot.callbackQuery(/^admin_delete_product:/, handleInlineDeleteProduct);
 bot.callbackQuery(/^admin_edit_product:/, handleInlineEditProduct);
 bot.callbackQuery(/^admin_delete_category:/, handleInlineDeleteCategory);
 bot.callbackQuery(/^admin_edit_category:/, handleInlineEditCategory);
+bot.callbackQuery(/^admin_increase_stock:/, handleIncreaseStock);
+bot.callbackQuery(/^admin_decrease_stock:/, handleDecreaseStock);
+bot.callbackQuery(/^user_filter_status:/, handleUserOrderStatusFilter);
+bot.callbackQuery(/^user_cancel_order:/, handleUserCancelOrder);
+bot.callbackQuery('admin_add_category', handleAddCategory);
+bot.callbackQuery('noop', (ctx) => ctx.answerCallbackQuery()); // Обработчик для кнопки с количеством
 bot.callbackQuery(/category_(\d+)/, showCatalog); 
 
 

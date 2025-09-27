@@ -1,6 +1,6 @@
 import db from '../database.js';
-import { InputFile } from 'grammy';
-import { getCatalogNavigationKeyboard, getProductKeyboard } from '../keyboards/catalog.js';
+import { InlineKeyboard, InputFile } from 'grammy';
+import { getCatalogNavigationKeyboard, getProductKeyboard, getAdminProductKeyboard } from '../keyboards/catalog.js';
 import { getMainKeyboard } from '../keyboards/main.js';
 import config from '../config.js';
 import { isAdmin } from '../utils/helpers.js';
@@ -27,69 +27,39 @@ export async function showCatalog(ctx, page = 0) {
                 }
                 message += `📝 ${product.description}\n\n`;
 
-                const keyboard = getCatalogNavigationKeyboard(product.id, categoryId);
-                if (isAdmin(ctx.from.id)) {
-                    keyboard.add(
-                        { text: '✏️ Редактировать', callback_data: `admin_edit_product:${product.id}` },
-                        { text: '🗑️ Удалить', callback_data: `admin_delete_product:${product.id}` }
-                    );
-                }
+                // Используем разные клавиатуры для админа и обычных пользователей
+                const keyboard = isAdmin(ctx.from.id) 
+                    ? getAdminProductKeyboard(product, categoryId)
+                    : getCatalogNavigationKeyboard(product, categoryId);
 
-                if (product.image_url) {
-                    try {
-                        const resizedPath = await resizeImageFromUrl(product.image_url, 320);
-                        await ctx.replyWithPhoto(new InputFile(resizedPath), {
-                            caption: message,
-                            parse_mode: 'Markdown',
-                            reply_markup: keyboard
-                        });
-                        await safeUnlink(resizedPath);
-                    } catch (e) {
-                        console.error('Image resize failed, sending original:', e);
-                        await ctx.replyWithPhoto(product.image_url, {
-                            caption: message,
-                            parse_mode: 'Markdown',
-                            reply_markup: keyboard
-                        });
-                    }
-                } else {
+                // if (product.image_url) {
+                //     try {
+                //        const resizedPath = await resizeImageFromUrl(product.image_url, 320);
+                //         await ctx.replyWithPhoto(new InputFile(product.image_url), {
+                //             caption: message,
+                //             parse_mode: 'Markdown',
+                //             reply_markup: keyboard
+                //         });
+                //         await safeUnlink(resizedPath);
+                //     } catch (e) {
+                //         console.error('Image resize failed, sending original:', e);
+                //         await ctx.replyWithPhoto(product.image_url, {
+                //             caption: message,
+                //             parse_mode: 'Markdown',
+                //             reply_markup: keyboard
+                //         });
+                //     }
+                // } else {
                     await ctx.reply(message, {
                         parse_mode: 'Markdown',
                         reply_markup: keyboard
                     });
-                }
+                // }
             }
 
     } catch (error) {
         console.error('Error showing catalog:', error);
         await ctx.reply('❌ Произошла ошибка при загрузке каталога');
-    }
-}
-
-export async function showProductCategories(ctx, page = 0) {
-    try {
-        const categories = db.getProductCategories();
-        
-        if (categories.length === 0) {
-            await ctx.reply('😔 В каталоге пока нет категорий');
-            return;
-        }
-        
-        for (const сategory of categories) {
-            let message = `🎁 *${сategory.name}*\n`;
-
-            const keyboard = getCatalogNavigationKeyboard(сategory.id);
-
-            await ctx.reply(message, {
-                parse_mode: 'Markdown',
-                reply_markup: keyboard
-            });
-            
-        }
-       
-    } catch (error) {
-        console.error('Error showing categories:', error);
-        await ctx.reply('❌ Произошла ошибка при загрузке категорий');
     }
 }
 
