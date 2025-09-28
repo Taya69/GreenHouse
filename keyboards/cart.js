@@ -20,7 +20,7 @@ export function getCartKeyboard(cartItems) {
     // Основные действия
     keyboard.push([
         InlineKeyboard.text('🗑️ Очистить корзину', 'clear_cart'),
-        InlineKeyboard.text('🔄 Обновить корзину', 'update_cart')
+        // InlineKeyboard.text('🔄 Обновить корзину', 'update_cart')
     ]);
     keyboard.push([
         InlineKeyboard.text('✅ Оформить заказ', 'checkout')

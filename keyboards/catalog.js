@@ -40,8 +40,8 @@ export function getCatalogNavigationKeyboard(product = null, categoryId = null) 
     const navButtons = [];
    
     // navButtons.push(InlineKeyboard.text('📂 Категории', 'show_categories'));   
-    navButtons.push(InlineKeyboard.text('➕', `cart_increase:${product.id}`));
-    navButtons.push(InlineKeyboard.text('➖', `cart_decrease:${product.id}`));
+    navButtons.push(InlineKeyboard.text('➕', `cart_increase_in_product:${product.id}`));
+    navButtons.push(InlineKeyboard.text('➖', `cart_decrease_in_product:${product.id}`));
     navButtons.push(InlineKeyboard.text('🛒 Корзина', 'show_cart'));
     // keyboard.push([
     //     InlineKeyboard.text('➖', `cart_decrease:${item.product_id}`),

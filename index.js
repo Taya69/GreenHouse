@@ -23,8 +23,9 @@ import {
     handleClearCart,
     handleCheckout,
     handleCartIncrease,
-    handleCartDecrease,
-    handleUpdateCart
+    handleCartDecrease,    
+    handleCartIncreaseInProduct,
+    handleCartDecreaseInProduct
 } from './handlers/cart.js';
 
 import { showUserOrders, handleUserOrderStatusFilter, handleUserCancelOrder } from './handlers/orders.js';
@@ -188,8 +189,10 @@ bot.callbackQuery(/^catalog_page:/, handleCatalogNavigation);
 bot.callbackQuery(/^remove_from_cart:/, handleRemoveFromCart);
 bot.callbackQuery(/^cart_increase:/, handleCartIncrease);
 bot.callbackQuery(/^cart_decrease:/, handleCartDecrease);
+bot.callbackQuery(/^cart_increase_in_product:/, handleCartIncreaseInProduct);
+bot.callbackQuery(/^cart_decrease_in_product:/, handleCartDecreaseInProduct);
 bot.callbackQuery('clear_cart', handleClearCart);
-bot.callbackQuery('update_cart', handleUpdateCart);
+// bot.callbackQuery('update_cart', handleUpdateCart);
 bot.callbackQuery('checkout', handleCheckout);
 bot.callbackQuery(/^admin_set_status:/, handleOrderStatusChange);
 bot.callbackQuery(/^admin_delete_product:/, handleInlineDeleteProduct);
