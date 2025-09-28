@@ -71,7 +71,7 @@ class ShopDatabase {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER,
                 total_amount REAL,
-                status TEXT DEFAULT '${config.ORDER_STATUSES.CREATED}',
+                status TEXT DEFAULT 'created',
                 admin_comment TEXT DEFAULT '',
                 user_comment TEXT DEFAULT '',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -100,6 +100,8 @@ class ShopDatabase {
         this.stmts = {
             // User statements
             getUser: this.db.prepare('SELECT * FROM users WHERE telegram_id = ?'),
+            getUserById: this.db.prepare('SELECT * FROM users WHERE id = ?'),
+            getUsers: this.db.prepare('SELECT * FROM users'),
             createUser: this.db.prepare(`
                 INSERT OR IGNORE INTO users (telegram_id, username, first_name, last_name) 
                 VALUES (?, ?, ?, ?)
@@ -116,17 +118,17 @@ class ShopDatabase {
                 LEFT JOIN categories c ON p.category_id = c.id
                 WHERE p.is_available = TRUE 
                 AND (p.category_id = ? OR ? IS NULL)
-                ORDER BY p.created_at DESC
+                ORDER BY p.created_at ASC
             `),
             getProductsAny: this.db.prepare(`
                 SELECT p.*, c.name AS category_name 
                 FROM products p
                 LEFT JOIN categories c ON p.category_id = c.id
                 WHERE (p.category_id = ? OR ? IS NULL)
-                ORDER BY p.created_at DESC
+                ORDER BY p.created_at ASC
             `),
-            getAllProducts: this.db.prepare('SELECT p.*, c.name AS category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id ORDER BY p.created_at DESC'),
-            getAllAvailableProducts: this.db.prepare('SELECT p.*, c.name AS category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.is_available = TRUE ORDER BY p.created_at DESC'),
+            getAllProducts: this.db.prepare('SELECT p.*, c.name AS category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id ORDER BY p.created_at ASC'),
+            getAllAvailableProducts: this.db.prepare('SELECT p.*, c.name AS category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.is_available = TRUE ORDER BY p.created_at ASC'),
             getProductById: this.db.prepare('SELECT p.*, c.name AS category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ? AND p.is_available = TRUE'),
             addProduct: this.db.prepare(`
                 INSERT INTO products (name, description, price, category_id, image_url, stock) 
@@ -172,20 +174,20 @@ class ShopDatabase {
                 SELECT o.* 
                 FROM orders o 
                 WHERE o.user_id = ? 
-                ORDER BY o.created_at DESC
+                ORDER BY o.created_at ASC
             `),
             getAllOrders: this.db.prepare(`
                 SELECT o.*, u.first_name, u.username, u.phone 
                 FROM orders o 
                 JOIN users u ON o.user_id = u.id 
-                ORDER BY o.created_at DESC
+                ORDER BY o.created_at ASC
             `),
             getOrdersByStatus: this.db.prepare(`
                 SELECT o.*, u.first_name, u.username, u.phone 
                 FROM orders o 
                 JOIN users u ON o.user_id = u.id 
                 WHERE o.status = ?
-                ORDER BY o.created_at DESC
+                ORDER BY o.created_at ASC
             `),
             getOrderById: this.db.prepare('SELECT * FROM orders WHERE id = ?'),
             getOrderDetails: this.db.prepare(`
@@ -233,6 +235,12 @@ class ShopDatabase {
     // Методы для работы с пользователями
     getUser(telegramId) {
         return this.stmts.getUser.get(telegramId);
+    }
+    getUserById(Id) {
+        return this.stmts.getUserById.get(Id);
+    }
+    getUsers() {
+        return this.stmts.getUsers.all();
     }
 
     createUser(userData) {

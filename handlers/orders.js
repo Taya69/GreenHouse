@@ -1,6 +1,7 @@
 import db from '../database.js';
 import { getOrderStatusText } from '../utils/helpers.js';
 import { getUserOrderStatusKeyboard, getUserOrderKeyboard } from '../keyboards/orders.js';
+import config from '../config.js';
 
 export async function showUserOrders(ctx) {
     try {
@@ -26,7 +27,6 @@ export async function showUserOrdersByStatus(ctx, status) {
     try {
         const user = db.getUser(ctx.from.id);
         let orders = db.getUserOrders(user.id);
-
         // Фильтруем заказы по статусу, если выбран не "все"
         if (status !== 'all') {
             orders = orders.filter(order => order.status === status);
@@ -114,8 +114,8 @@ export async function handleUserCancelOrder(ctx) {
         await notifyAdminAboutOrderCancellation(ctx, order, user);
         
         // Обновляем сообщение
-        await ctx.deleteMessage();
-        await showUserOrdersByStatus(ctx, 'all');
+        // await ctx.deleteMessage();
+        // await showUserOrdersByStatus(ctx, 'all');
         
     } catch (error) {
         console.error('Error cancelling order:', error);
@@ -124,15 +124,7 @@ export async function handleUserCancelOrder(ctx) {
 }
 
 async function notifyAdminAboutOrderCancellation(ctx, order, user) {
-    try {
-        // Получаем всех администраторов
-        const admins = db.getAdmins();
-        
-        if (admins.length === 0) {
-            console.log('No admins found to notify');
-            return;
-        }
-        
+    try {        
         const orderDetails = db.getOrderDetails(order.id);
         
         let message = `🚨 *УВЕДОМЛЕНИЕ ОБ ОТМЕНЕ ЗАКАЗА*\n\n`;
@@ -150,15 +142,25 @@ async function notifyAdminAboutOrderCancellation(ctx, order, user) {
         });
         
         // Отправляем уведомление всем администраторам
-        for (const admin of admins) {
+        for (const adminId of config.ADMIN_IDS) {
             try {
-                await ctx.api.sendMessage(admin.telegram_id, message, {
-                    parse_mode: 'Markdown'
-                });
+            await ctx.api.sendMessage(
+                adminId,
+                message
+            );
             } catch (error) {
-                console.error(`Failed to notify admin ${admin.telegram_id}:`, error);
+                console.error(`Failed to notify admin ${adminId}:`, error);
             }
         }
+        // for (const admin of admins) {
+        //     try {
+        //         await ctx.api.sendMessage(admin.telegram_id, message, {
+        //             parse_mode: 'Markdown'
+        //         });
+        //     } catch (error) {
+        //         console.error(`Failed to notify admin ${admin.telegram_id}:`, error);
+        //     }
+        // }
         
     } catch (error) {
         console.error('Error notifying admin about order cancellation:', error);

@@ -1,5 +1,5 @@
 import db from '../database.js';
-import { getAdminKeyboard, getOrdersKeyboard, getOrderActionsKeyboard, getOrderStatusKeyboard } from '../keyboards/admin.js';
+import { getAdminKeyboard, getOrdersKeyboard, getOrderStatusKeyboard } from '../keyboards/admin.js';
 import { getAdminProductKeyboard } from '../keyboards/catalog.js';
 import { getCategoryManagementKeyboard, getCategoriesManagementKeyboard } from '../keyboards/categories.js';
 import { getMainKeyboard } from '../keyboards/main.js';
@@ -7,6 +7,8 @@ import config from '../config.js';
 import { isAdmin, getOrderStatusText } from '../utils/helpers.js';
 import { escapeMarkdown } from '../utils/markdown.js';
 import { resizeImageFromUrl } from '../utils/image.js';
+import { InlineKeyboard } from 'grammy';
+import { getUserOrderStatusKeyboard } from '../keyboards/orders.js';
 
 export async function showAdminPanel(ctx) {
     if (!isAdmin(ctx.from.id)) {
@@ -30,7 +32,8 @@ export async function showAdminStats(ctx) {
     
     stats.forEach(stat => {
         totalOrders += stat.status_count;
-        if (stat.status === config.ORDER_STATUSES.COMPLETED) {
+        
+        if (stat.status === 'completed') {
             totalRevenue += stat.total_revenue || 0;
         }
         message += `📦 ${stat.status}: ${stat.status_count} заказов\n`;
@@ -77,13 +80,41 @@ export async function showAllOrders(ctx) {
         orderDetails.forEach((item, index) => {
             message += `${index + 1}. ${item.name} - ${item.quantity} шт. x ${item.price} руб.\n`;
         });
-        // console.log(order.id);
         message = escapeMarkdown(message);  
         await ctx.reply(message, {
             parse_mode: 'Markdown',
             reply_markup: getOrderStatusKeyboard(order.id)
         });  
     }
+}
+
+export async function showAdminOrdersByStatus(ctx) {
+    if (!isAdmin(ctx.from.id)) {
+        await ctx.reply('❌ У вас нет прав администратора');
+        return;
+    }
+    // const keyboard = new InlineKeyboard()
+    // .text('🔎 Заказы по статусу', async (ctx) => {
+        const kb = InlineKeyboard.from([
+            [
+                InlineKeyboard.text('📝 Создан', 'admin_filter_status:created'),
+                InlineKeyboard.text('✅ Принят', 'admin_filter_status:accepted')
+            ],
+            [
+                InlineKeyboard.text('🚚 Исполнен', 'admin_filter_status:completed'),
+                InlineKeyboard.text('❌ Отклонён', 'admin_filter_status:rejected')
+            ],
+            [
+                InlineKeyboard.text('❌ Отменён', 'admin_filter_status:cancelled')
+            ]
+        ]);
+        await ctx.reply('Выберите статус:', { reply_markup: kb });
+    // }) 
+    // await ctx.reply('Выберете статус', {
+    //     parse_mode: 'Markdown',
+    //     reply_markup: keyboard
+    // });  
+    
 }
 
 export async function showOrdersByStatus(ctx) {
@@ -111,12 +142,17 @@ export async function showOrdersByStatus(ctx) {
         message += `💵 Сумма: ${order.total_amount} руб.\n`;
         message += `📅 Дата: ${new Date(order.created_at).toLocaleDateString()}\n`;
         message += `📊 Статус: ${getOrderStatusText(order.status)}\n`;
+        message += `📊 Кооментарий администратора: ${order.admin_comment}\n`;
+        message += `📊 Кооментарий пользователя: ${order.user_comment}\n`;
         message += '\n*Товары:*\n';
         orderDetails.forEach((item, index) => {
             message += `${index + 1}. ${item.name} - ${item.quantity} шт. x ${item.price} руб.\n`;
         });
-        message = escapeMarkdown(message);
-        await ctx.reply(message, { parse_mode: 'Markdown' });
+        message = escapeMarkdown(message); 
+        await ctx.reply(message, {
+            parse_mode: 'Markdown',
+            reply_markup: getOrderStatusKeyboard(order.id)
+        });
     }
 }
 
@@ -125,21 +161,11 @@ export async function handleOrderStatusChange(ctx) {
     
     ctx.session.editingOrder = { 
         orderId: parseInt(orderId), 
-        status: getStatusFromKey(status) 
+        status: getOrderStatusText(status) 
     };
     
-    await ctx.reply(`Введите комментарий для статуса "${getStatusFromKey(status)}":`);
+    await ctx.reply(`Введите комментарий для статуса "${getOrderStatusText(status)}":`);
     await ctx.conversation.enter('updateOrderStatus');
-}
-
-function getStatusFromKey(key) {
-    const statusMap = {
-        'created': config.ORDER_STATUSES.CREATED,
-        'accepted': config.ORDER_STATUSES.ACCEPTED,
-        'completed': config.ORDER_STATUSES.COMPLETED,
-        'rejected': config.ORDER_STATUSES.REJECTED
-    };
-    return statusMap[key] || key;
 }
 
 export async function handleAddProduct(ctx) {
@@ -392,5 +418,21 @@ async function updateProductMessage(ctx, productId) {
         // }
     } catch (error) {
         console.error('Error updating product message:', error);
+    }
+}
+
+export async function showUsers(ctx) {
+    try {
+        const users = db.getUsers();
+
+        // Показываем клавиатуру выбора статуса
+        for (const user of users) {
+            let message = `📂 ${user.full_name} (ID: ${user.id}) (tgID: ${user.telegram_id}) ${user.phone}`
+            message += `\n${user.username}\n`;
+            await ctx.reply(message);
+        }
+    } catch (error) {
+        console.error('Error showing users:', error);
+        await ctx.reply('❌ Произошла ошибка при загрузке пользователей');
     }
 }

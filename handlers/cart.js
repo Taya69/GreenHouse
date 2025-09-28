@@ -1,7 +1,7 @@
 import db from '../database.js';
 import { getCartKeyboard } from '../keyboards/cart.js';
 import { getMainKeyboard } from '../keyboards/main.js';
-import { showCatalog } from './catalog.js';
+import { handleAddToCart, showCatalog } from './catalog.js';
 
 export async function showCart(ctx) {
     try {
@@ -45,8 +45,8 @@ export async function handleRemoveFromCart(ctx) {
         await ctx.answerCallbackQuery('🗑️ Товар удален из корзины');
         
         // Обновляем сообщение корзины
-        await ctx.deleteMessage();
-        await showCart(ctx);
+        // await ctx.deleteMessage();
+        // await showCart(ctx);
     } catch (error) {
         console.error('Error removing from cart:', error);
         await ctx.answerCallbackQuery('❌ Ошибка при удалении товара');
@@ -66,6 +66,61 @@ export async function handleClearCart(ctx) {
     }
 }
 
+export async function handleUpdateCart(ctx) {
+    try {
+        await ctx.answerCallbackQuery('🔄 Корзина обновлена');
+        await ctx.deleteMessage();
+        await showCart(ctx);
+    } catch (error) {
+        console.error('Error updating cart:', error);
+        await ctx.answerCallbackQuery('❌ Ошибка при обновлении корзины');
+    }
+}
+
+async function updateCartChange(ctx, productId) {
+    try {
+        const product = db.getProductById(productId);
+        if (!product) return;
+        
+        let message = `🎁 *${product.name}*\n`;
+        message += `💰 Цена: ${product.price} руб.\n`;
+        message += `📦 В наличии: ${product.stock} шт.\n`;
+        if (product.category_name) {
+            message += `📂 Категория: ${product.category_name}\n`;
+        }
+        message += `📝 ${product.description}\n\n`;
+        
+        // Получаем категорию из контекста или из продукта
+        const categoryId = product.category_id;
+        
+        const keyboard = getAdminProductKeyboard(product, categoryId);
+        
+        // if (product.image_url) {
+        //     try {
+        //         const resizedPath = await resizeImageFromUrl(product.image_url, 320);
+        //         await ctx.editMessageCaption(message, {
+        //             parse_mode: 'Markdown',
+        //             reply_markup: keyboard
+        //         });
+        //         await safeUnlink(resizedPath);
+        //     } catch (e) {
+        //         console.error('Image resize failed, updating original:', e);
+        //         await ctx.editMessageCaption(message, {
+        //             parse_mode: 'Markdown',
+        //             reply_markup: keyboard
+        //         });
+        //     }
+        // } else {
+            await ctx.editMessageText(message, {
+                parse_mode: 'Markdown',
+                reply_markup: keyboard
+            });
+        // }
+    } catch (error) {
+        console.error('Error updating product message:', error);
+    }
+}
+
 export async function handleCartIncrease(ctx) {
     try {
         const productId = parseInt(ctx.callbackQuery.data.split(':')[1]);
@@ -80,7 +135,8 @@ export async function handleCartIncrease(ctx) {
         const cartItem = db.getCartItem(user.id, productId);
         
         if (!cartItem) {
-            await ctx.answerCallbackQuery('❌ Товар не найден в корзине');
+            handleAddToCart(ctx);
+            // await ctx.answerCallbackQuery('❌ Товар не найден в корзине');
             return;
         }
 
@@ -97,8 +153,8 @@ export async function handleCartIncrease(ctx) {
         await ctx.answerCallbackQuery(`✅ Количество увеличено до ${newQuantity} шт.`);
         
         // Обновляем сообщение корзины
-        await ctx.deleteMessage();
-        await showCart(ctx);
+        // await ctx.deleteMessage();
+        // await showCart(ctx);
     } catch (error) {
         console.error('Error increasing cart quantity:', error);
         await ctx.answerCallbackQuery('❌ Ошибка при изменении количества');
@@ -118,7 +174,8 @@ export async function handleCartDecrease(ctx) {
         }
 
         if (cartItem.quantity <= 1) {
-            await ctx.answerCallbackQuery('❌ Минимальное количество: 1 шт.');
+            handleRemoveFromCart(ctx);
+            //await ctx.answerCallbackQuery('❌ Минимальное количество: 1 шт.');
             return;
         }
 
@@ -129,8 +186,8 @@ export async function handleCartDecrease(ctx) {
         await ctx.answerCallbackQuery(`✅ Количество уменьшено до ${newQuantity} шт.`);
         
         // Обновляем сообщение корзины
-        await ctx.deleteMessage();
-        await showCart(ctx);
+        // await ctx.deleteMessage();
+        // await showCart(ctx);
     } catch (error) {
         console.error('Error decreasing cart quantity:', error);
         await ctx.answerCallbackQuery('❌ Ошибка при изменении количества');

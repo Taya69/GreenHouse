@@ -1,6 +1,5 @@
-import { Bot, Keyboard, InlineKeyboard, session } from 'grammy';
+import { Bot, session } from 'grammy';
 import db from './database.js';
-import { Menu } from '@grammyjs/menu';
 import { conversations, createConversation } from '@grammyjs/conversations';
 import config from './config.js';
 import * as dotenv from 'dotenv';
@@ -16,7 +15,6 @@ import {
     showCatalog,
     handleAddToCart,
     handleCatalogNavigation
-
 } from './handlers/catalog.js';
 
 import {
@@ -25,7 +23,8 @@ import {
     handleClearCart,
     handleCheckout,
     handleCartIncrease,
-    handleCartDecrease
+    handleCartDecrease,
+    handleUpdateCart
 } from './handlers/cart.js';
 
 import { showUserOrders, handleUserOrderStatusFilter, handleUserCancelOrder } from './handlers/orders.js';
@@ -45,7 +44,9 @@ import {
     handleInlineDeleteCategory,
     handleIncreaseStock,
     handleDecreaseStock,
-    handleAddCategory
+    handleAddCategory,
+    showAdminOrdersByStatus,
+    showUsers
 } from './handlers/admin.js';
 
 import {
@@ -81,12 +82,12 @@ const adminCommands = [
     { command: 'admin', description: 'Главное меню' },
     { command: 'catalog', description: 'Каталог товаров' },
     // { command: 'cart', description: 'Корзина' },
-    { command: 'orders', description: 'Мои заказы' },
-    { command: 'admin', description: 'Админ панель' },
-    { command: 'stats', description: 'Статистика' },
+    { command: 'orders_by_status', description: 'Заказы по статусу' },    
     { command: 'orders_all', description: 'Все заказы' },    
     { command: 'add_product', description: 'Добавить товар' },
-    { command: 'add_category', description: 'Добавить категорию' } 
+    { command: 'add_category', description: 'Добавить категорию' },
+    { command: 'users', description: 'Пользователи' },
+    { command: 'stats', description: 'Статистика' },
 ];
 
 async function setCommandsForUser(ctx) {
@@ -111,15 +112,13 @@ bot.use(session({
 bot.use(conversations());
 bot.use(createConversation(addProduct));
 bot.use(createConversation(addProductCategory));
-// bot.use(addProduct);
 bot.use(createConversation(getContactInfo));
 bot.use(createConversation(checkoutFromCart));
 bot.use(createConversation(editProduct));
 bot.use(createConversation(editCategory));
-// bot.use(getContactInfo);
 bot.use(createConversation(updateOrderStatus));
-// bot.use(updateOrderStatus);
-// bot.use(createConversation(createOrder));
+
+
 
 
 // Клавиатуры
@@ -138,6 +137,7 @@ bot.command('orders', showUserOrders);
 bot.command('admin', showAdminPanel);
 bot.command('stats', showAdminStats);
 bot.command('orders_all', showAllOrders);
+bot.command('orders_by_status', showAdminOrdersByStatus);
 bot.callbackQuery(/^admin_filter_status:(.*)$/, async (ctx) => {
     const status = ctx.match[1];
     ctx.session.filterStatus = status;
@@ -147,6 +147,7 @@ bot.callbackQuery(/^admin_filter_status:(.*)$/, async (ctx) => {
 bot.command('categories', showAdminCategories);
 bot.command('add_product', handleAddProduct);
 bot.command('add_category', handleAddProductCategory);
+bot.command('users', showUsers);
 
 // Текстовые сообщения
 // bot.hears('🚀 Start', handleStartButton);
@@ -160,8 +161,6 @@ bot.hears('📦 Заказы', showAllOrders);
 bot.hears('➕ Добавить товар', handleAddProduct);
 bot.hears('➕ Добавить категорию', handleAddProductCategory);
 bot.hears('⬅️ Назад', handleMainMenu);
-
-
 
 // Callback queries
 bot.callbackQuery('main_menu', handleMainMenu);
@@ -190,6 +189,7 @@ bot.callbackQuery(/^remove_from_cart:/, handleRemoveFromCart);
 bot.callbackQuery(/^cart_increase:/, handleCartIncrease);
 bot.callbackQuery(/^cart_decrease:/, handleCartDecrease);
 bot.callbackQuery('clear_cart', handleClearCart);
+bot.callbackQuery('update_cart', handleUpdateCart);
 bot.callbackQuery('checkout', handleCheckout);
 bot.callbackQuery(/^admin_set_status:/, handleOrderStatusChange);
 bot.callbackQuery(/^admin_delete_product:/, handleInlineDeleteProduct);

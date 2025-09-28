@@ -36,10 +36,10 @@ export function getCategoriesInlineKeyboard() {
         keyboard.push(row);
     }
     
-    keyboard.push([
-        InlineKeyboard.text('➕ Новая категория', 'new_category'),
-        InlineKeyboard.text('❌ Отмена', 'cancel_add_product')
-    ]);
+    // keyboard.push([
+    //     InlineKeyboard.text('➕ Новая категория', 'new_category'),
+    //     InlineKeyboard.text('❌ Отмена', 'cancel_add_product')
+    // ]);
     
     return InlineKeyboard.from(keyboard);
 }

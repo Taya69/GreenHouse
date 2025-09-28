@@ -1,37 +1,21 @@
 import { Keyboard, InlineKeyboard } from 'grammy';
-import { showAdminStats, showAllOrders } from '../handlers/admin.js';
+import { showAdminOrdersByStatus, showAdminStats, showAllOrders } from '../handlers/admin.js';
 import { Menu } from '@grammyjs/menu';
 import { getCategoriesKeyboard } from './categories.js';
 import db from '../database.js';
 
 const adminMenu = new Menu('admin-menu')
-        .text('📊 Статистика', async (ctx) => {
-            await showAdminStats(ctx);
-        })
-        .row()
         .text('📦 Заказы (все)', async (ctx) => {
             await showAllOrders(ctx);
         })
-        .text('🔎 Заказы по статусу', async (ctx) => {
-            const kb = InlineKeyboard.from([
-                [
-                    InlineKeyboard.text('📝 Создан', 'admin_filter_status:created'),
-                    InlineKeyboard.text('✅ Принят', 'admin_filter_status:accepted')
-                ],
-                [
-                    InlineKeyboard.text('🚚 Исполнен', 'admin_filter_status:completed'),
-                    InlineKeyboard.text('❌ Отклонён', 'admin_filter_status:rejected')
-                ]
-            ]);
-            await ctx.reply('Выберите статус:', { reply_markup: kb });
-        })
+        .text('🔎 Заказы по статусу', showAdminOrdersByStatus)
+        .row()
         .text('🛍️ Каталог', async (ctx) => {
                // await showCatalog(ctx);
                await ctx.reply("Выберите категорию товаров:", {
                    reply_markup: getCategoriesKeyboard()
                });
-           })
-        .row()
+           }) 
         .text('➕ Добавить товар', async (ctx) => {
             await ctx.conversation.enter('addProduct');
         })
@@ -54,8 +38,13 @@ const adminMenu = new Menu('admin-menu')
         })
         .text('➕ Добавить категорию', async (ctx) => {
             await ctx.conversation.enter('addProductCategory');
-        });
-export function getAdminKeyboard() {
+        })
+        .row()
+        .text('📊 Статистика', async (ctx) => {
+            await showAdminStats(ctx);
+        })               
+        ;
+export function getAdminKeyboard() {    
     return adminMenu;
 }
 
@@ -71,29 +60,19 @@ export function getOrdersKeyboard() {
     ]);
 }
 
-export function getOrderActionsKeyboard(orderId) {
-    return InlineKeyboard.from([
-        [
-            InlineKeyboard.text('✏️ Изменить статус', `admin_order_status:${orderId}`)
-        ],
-        [
-            InlineKeyboard.text('⬅️ Назад к заказам', 'admin_orders_back')
-        ]
-    ]);
-}
-
 export function getOrderStatusKeyboard(orderId) {
     return InlineKeyboard.from([
         [
-            InlineKeyboard.text('✅ Принят', `admin_set_status:${orderId}:accepted`),
-            InlineKeyboard.text('🚚 Исполнен', `admin_set_status:${orderId}:completed`)
+            InlineKeyboard.text('📝 Создан', `admin_set_status:${orderId}:created`),
+            InlineKeyboard.text('✅ Принят', `admin_set_status:${orderId}:accepted`)            
         ],
         [
-            InlineKeyboard.text('❌ Отклонён', `admin_set_status:${orderId}:rejected`),
-            InlineKeyboard.text('📝 Создан', `admin_set_status:${orderId}:created`)
-        ],
-        [
-            InlineKeyboard.text('⬅️ Назад', `admin_order_back:${orderId}`)
+            InlineKeyboard.text('🚚 Исполнен', `admin_set_status:${orderId}:completed`),
+            InlineKeyboard.text('❌ Отклонён', `admin_set_status:${orderId}:rejected`)
+            // InlineKeyboard.text('❌ Отменён', `admin_set_status:${orderId}:cancelled`)            
         ]
+        // [
+        //     InlineKeyboard.text('⬅️ Назад', `admin_order_back:${orderId}`)
+        // ]
     ]);
 }

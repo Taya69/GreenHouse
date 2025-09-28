@@ -33,28 +33,38 @@ export function getCatalogNavigationKeyboard(product = null, categoryId = null) 
     const keyboard = []; 
     if (product) {
         keyboard.push([
-            InlineKeyboard.text('➕ Добавить в корзину', `add_to_cart:${product.id}`)
+            
         ]);
     }
-
     // Кнопки навигации
     const navButtons = [];
-    if (categoryId) {
-        navButtons.push(InlineKeyboard.text('📂 Все категории', 'show_categories'));
-    } else {
-        navButtons.push(InlineKeyboard.text('📂 Категории', 'show_categories'));
-    }
+   
+    // navButtons.push(InlineKeyboard.text('📂 Категории', 'show_categories'));   
+    navButtons.push(InlineKeyboard.text('➕', `cart_increase:${product.id}`));
+    navButtons.push(InlineKeyboard.text('➖', `cart_decrease:${product.id}`));
     navButtons.push(InlineKeyboard.text('🛒 Корзина', 'show_cart'));
-    
+    // keyboard.push([
+    //     InlineKeyboard.text('➖', `cart_decrease:${item.product_id}`),
+    //     InlineKeyboard.text(`${item.quantity}`, 'noop'),
+    //     InlineKeyboard.text('➕', `cart_increase:${item.product_id}`)
+    // ]);
     keyboard.push(navButtons);
-    keyboard.push([
-        InlineKeyboard.text('🏠 Главное меню', 'main_menu')
-    ])
+
+    const navButtons2 = [];
+
     if (product.image_url) {
-        keyboard.push([
+        navButtons2.push(
             InlineKeyboard.webApp('🖼️ Посмотреть с фото', product.image_url)
-        ]);
+        );
     }
+    
+    navButtons2.push(InlineKeyboard.text('📂 Категории', 'show_categories')); 
+    
+    navButtons2.push(
+        InlineKeyboard.text('🏠 Главное меню', 'main_menu')
+    );    
+
+    keyboard.push(navButtons2);
 
     return InlineKeyboard.from(keyboard);
 }
@@ -84,34 +94,40 @@ export function getAdminProductKeyboard(product, categoryId = null) {
     
     // Обычные кнопки для пользователей
     keyboard.push([
-        InlineKeyboard.text('➕ Добавить в корзину', `add_to_cart:${product.id}`)
+        InlineKeyboard.text('➕ Добавить в корзину', `add_to_cart:${product.id}`),
+        InlineKeyboard.text('🛒 Корзина', 'show_cart')
     ]);
 
     // Кнопки навигации
     const navButtons = [];
-    if (categoryId) {
-        navButtons.push(InlineKeyboard.text('📂 Все категории', 'show_categories'));
-    } else {
+    // if (categoryId) {
+    //     navButtons.push(InlineKeyboard.text('📂 Все категории', 'show_categories'));
+    // } else {
         navButtons.push(InlineKeyboard.text('📂 Категории', 'show_categories'));
-    }
-    navButtons.push(InlineKeyboard.text('🛒 Корзина', 'show_cart'));
+    // }
+    // navButtons.push(InlineKeyboard.text('🛒 Корзина', 'show_cart'));
     
+    
+    navButtons.push(
+        InlineKeyboard.text('🏠 Главное меню', 'admin_menu')
+    );
     keyboard.push(navButtons);
-    keyboard.push([
-        InlineKeyboard.text('🏠 Главное меню', 'main_menu')
-    ]);
     
     // Кнопки администратора
-    keyboard.push([
-        InlineKeyboard.text('✏️ Редактировать', `admin_edit_product:${product.id}`),
-        InlineKeyboard.text('🗑️ Удалить', `admin_delete_product:${product.id}`)
-    ]);
+    const navButtons2 = [];
+    navButtons2.push(
+        InlineKeyboard.text('✏️', `admin_edit_product:${product.id}`)
+    );
+    navButtons2.push(
+        InlineKeyboard.text('🗑️', `admin_delete_product:${product.id}`)
+    );
     
     if (product.image_url) {
-        keyboard.push([
-            InlineKeyboard.webApp('🖼️ Посмотреть с фото', product.image_url)
-        ]);
+        navButtons2.push(
+            InlineKeyboard.webApp('🖼️ Посмотреть', product.image_url)
+        );
     }
+    keyboard.push(navButtons2);
 
     return InlineKeyboard.from(keyboard);
 }

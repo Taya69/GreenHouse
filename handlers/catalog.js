@@ -5,6 +5,7 @@ import { getMainKeyboard } from '../keyboards/main.js';
 import config from '../config.js';
 import { isAdmin } from '../utils/helpers.js';
 import { resizeImageFromUrl, safeUnlink } from '../utils/image.js';
+import { escapeMarkdown } from '../utils/markdown.js';
 
 export async function showCatalog(ctx, page = 0) {
     try {
@@ -15,16 +16,16 @@ export async function showCatalog(ctx, page = 0) {
         // const pagination = paginateArray(products, 1, config.PRODUCTS_PER_PAGE);
             
             // Показываем заголовок с категорией
-            await ctx.reply(`📂 ** (${products.length} товаров)`, {
-                parse_mode: 'Markdown'
-            });
+            // await ctx.reply(`📂 ** (${products.length} товаров)`, {
+            //     parse_mode: 'Markdown'
+            // });
             for (const product of products) {
-                let message = `🎁 *${product.name}*\n`;
+                let message = `🎁 *${product.name}* `;
                 message += `💰 Цена: ${product.price} руб.\n`;
                 message += `📦 В наличии: ${product.stock} шт.\n`;
-                if (product.category_name) {
-                    message += `📂 Категория: ${product.category_name}\n`;
-                }
+                // if (product.category_name) {
+                //     message += `📂 Категория: ${product.category_name}\n`;
+                // }
                 message += `📝 ${product.description}\n\n`;
 
                 // Используем разные клавиатуры для админа и обычных пользователей
@@ -100,4 +101,8 @@ export async function handleCatalogNavigation(ctx) {
 export async function handleBackToCatalog(ctx) {
     await ctx.deleteMessage();
     await showCatalog(ctx);
+}
+
+function truncateText(text, maxLength) {
+    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
 }

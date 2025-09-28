@@ -1,29 +1,30 @@
 import db from '../database.js';
 import config from '../config.js';
 import { getCategoriesInlineKeyboard } from '../keyboards/categories.js';
+import { getOrderStatusText } from '../utils/helpers.js';
 
 function isCancelText(text) {
     if (!text) return false;
     const t = text.trim().toLowerCase();
-    return t === 'отмена' || t === 'cancel' || t === 'стоп';
+    return t === 'отмена' || t === '-';
 }
 
 export async function addProduct(conversation, ctx) {
-    await ctx.reply('🎁 Введите название товара (или отправьте "отмена" для отмены):');
+    await ctx.reply('🎁 Введите название товара (или отправьте "-" для отмены):');
     const name = await conversation.wait();
     if (name.message && isCancelText(name.message.text)) {
         await ctx.reply('❌ Добавление товара отменено.');
         return;
     }
     
-    await ctx.reply('📝 Введите описание товара (или отправьте "отмена" для отмены):');
+    await ctx.reply('📝 Введите описание товара (или отправьте "-" для отмены):');
     const description = await conversation.wait();
     if (description.message && isCancelText(description.message.text)) {
         await ctx.reply('❌ Добавление товара отменено.');
         return;
     }
     
-    await ctx.reply('💰 Введите цену товара (только число, или "отмена" для отмены):');
+    await ctx.reply('💰 Введите цену товара (только число, или "-" для отмены):');
     const priceMsg = await conversation.wait();
     if (priceMsg.message && isCancelText(priceMsg.message.text)) {
         await ctx.reply('❌ Добавление товара отменено.');
@@ -36,7 +37,7 @@ export async function addProduct(conversation, ctx) {
         return;
     }
 
-    await ctx.reply('📂 Выберите категорию из списка (или отправьте "отмена" для отмены):', {
+    await ctx.reply('📂 Выберите категорию из списка (или отправьте "-" для отмены):', {
         reply_markup: getCategoriesInlineKeyboard()
     });
     let categoryId;
@@ -46,11 +47,9 @@ export async function addProduct(conversation, ctx) {
  
         // Обработка inline кнопок категорий
         if (categoryCtx.callbackQuery) {
-            const data = categoryCtx.callbackQuery.data;  
-            console.log(data);
+            const data = categoryCtx.callbackQuery.data; 
             if (data.startsWith('select_category:')) {
-                categoryId = parseInt(data.split(':')[1]);  
-                console.log(categoryId);  
+                categoryId = parseInt(data.split(':')[1]);        
                 const category = db.getProductCategoryById(categoryId);
                 categoryName = category.name;
                 await categoryCtx.answerCallbackQuery(`Выбрана категория: ${categoryName}`);
@@ -68,14 +67,14 @@ export async function addProduct(conversation, ctx) {
     }   
 
     
-    await ctx.reply('🖼️ Введите URL изображения (или отправьте "нет", либо "отмена" для отмены):');
+    await ctx.reply('🖼️ Введите URL изображения (или отправьте "нет", либо "-" для отмены):');
     const imageUrl = await conversation.wait();
     if (imageUrl.message && isCancelText(imageUrl.message.text)) {
         await ctx.reply('❌ Добавление товара отменено.');
         return;
     }
     
-    await ctx.reply('📦 Введите количество на складе (только число, или "отмена" для отмены):');
+    await ctx.reply('📦 Введите количество на складе (только число, или "-" для отмены):');
     const stockMsg = await conversation.wait();
     if (stockMsg.message && isCancelText(stockMsg.message.text)) {
         await ctx.reply('❌ Добавление товара отменено.');
@@ -111,7 +110,7 @@ export async function addProduct(conversation, ctx) {
 }
 
 export async function addProductCategory(conversation, ctx) {
-    await ctx.reply('🎁 Введите название категории (или отправьте "отмена" для отмены):');
+    await ctx.reply('🎁 Введите название категории (или отправьте "-" для отмены):');
     const name = await conversation.wait();
     if (name.message && isCancelText(name.message.text)) {
         await ctx.reply('❌ Добавление категории отменено.');
@@ -177,7 +176,7 @@ export async function checkoutFromCart(conversation, ctx) {
         await ctx.reply(
             `✅ Заказ #${orderId} оформлен успешно!\n` +
             `💵 Сумма: ${totalAmount} руб.\n` +
-            `📊 Статус: ${config.ORDER_STATUSES.CREATED}`
+            `📊 Статус: ${getOrderStatusText('created')}`
         );
 
         // Уведомление администраторов
@@ -230,9 +229,38 @@ export async function editProduct(conversation, ctx) {
     const priceMsg = await conversation.wait();
     const priceText = priceMsg.message.text.trim();
 
-    await ctx.reply('📂 Новый ID категории (число, или "-" чтобы пропустить):');
-    const catMsg = await conversation.wait();
-    const catText = catMsg.message.text.trim();
+    let categoryId;
+    let catText;
+    await ctx.reply('📂 Выберите категорию из списка (или отправьте "-" для отмены):', {
+        reply_markup: getCategoriesInlineKeyboard()
+    });
+    while (true) {
+        const categoryCtx = await conversation.wait();
+ 
+        // Обработка inline кнопок категорий
+        if (categoryCtx.callbackQuery) {
+            const data = categoryCtx.callbackQuery.data; 
+            if (data.startsWith('select_category:')) {
+                categoryId = parseInt(data.split(':')[1]);        
+                const category = db.getProductCategoryById(categoryId);
+                catText = category.name;
+                await categoryCtx.answerCallbackQuery(`Выбрана категория: ${catText}`);
+                break;
+            } else if (data === 'cancel_add_product') {
+                categoryId = '-';
+                break;
+            }
+        } else if (categoryCtx.message && isCancelText(categoryCtx.message.text)) {
+            categoryId = '-';
+            break;
+            // await ctx.reply('❌ Добавление товара отменено.');
+            // return;
+        }
+     
+    }   
+    // await ctx.reply('📂 Новый ID категории (число, или "-" чтобы пропустить):');
+    // const catMsg = await conversation.wait();
+    // catText = catMsg.message.text.trim();
 
     await ctx.reply('🖼️ Новый URL изображения (или "-" чтобы пропустить):');
     const imgMsg = await conversation.wait();
@@ -250,7 +278,7 @@ export async function editProduct(conversation, ctx) {
         name: newName === '-' ? product.name : newName,
         description: newDesc === '-' ? product.description : newDesc,
         price: priceText === '-' ? product.price : parseFloat(priceText),
-        category_id: catText === '-' ? product.category_id : parseInt(catText),
+        category_id: categoryId === '-' ? product.category_id : parseInt(categoryId),
         image_url: imgText === '-' ? product.image_url : imgText,
         stock: stockText === '-' ? product.stock : parseInt(stockText),
         is_available: availText === '-' ? product.is_available : parseInt(availText)
@@ -264,8 +292,6 @@ export async function editProduct(conversation, ctx) {
         await ctx.reply('❌ Некорректные данные. Редактирование отменено.');
         return;
     }
-
-    console.log('updated', updated);
     try {
         db.stmts.updateProduct.run(
             updated.name,
@@ -309,7 +335,7 @@ export async function editCategory(conversation, ctx) {
         return;
     }
 
-    await ctx.reply(`Текущее название: "${category.name}"\nВведите новое название (или "отмена" для отмены):`);
+    await ctx.reply(`Текущее название: "${category.name}"\nВведите новое название (или "-" для отмены):`);
     const nameMsg = await conversation.wait();
     if (nameMsg.message && isCancelText(nameMsg.message.text)) {
         await ctx.reply('❌ Редактирование отменено.');
@@ -337,7 +363,7 @@ export async function editCategory(conversation, ctx) {
 export async function updateOrderStatus(conversation, ctx) {
     // Safely get editingOrder from session or conversation, or parse from callback data
     let editingOrder = (ctx.session && ctx.session.editingOrder) || (conversation.session && conversation.session.editingOrder);
-
+    
     if (!editingOrder || !editingOrder.orderId || !editingOrder.status) {
         if (ctx.callbackQuery && ctx.callbackQuery.data) {
             const m = ctx.callbackQuery.data.match(/^admin_set_status:(\d+):([a-zA-Z_]+)/);
@@ -360,33 +386,38 @@ export async function updateOrderStatus(conversation, ctx) {
         const stMsg = await conversation.wait();
         const statusText = (stMsg.message?.text || '').trim().toLowerCase();
         editingOrder = { orderId: parsedId, status: statusText };
+        
     }
-
+    
+    let status = editingOrder.status;
+    editingOrder = db.getOrderById(editingOrder.orderId);
     // Persist for future steps
     ctx.session = ctx.session || {};
     conversation.session = conversation.session || {};
     ctx.session.editingOrder = editingOrder;
     conversation.session.editingOrder = editingOrder;
 
-    const { orderId, status } = editingOrder;
+    // const { orderId, status } = editingOrder;
 
     await ctx.reply(`Введите комментарий для статуса "${status}":`);
     const commentMsg = await conversation.wait();
-    const adminComment = commentMsg.message.text;
 
-    db.updateOrderStatus(orderId, status, adminComment);
+    console.log(editingOrder);
+    const adminComment = editingOrder.admin_comment + " \n" + commentMsg.message.text;
+    
+    db.updateOrderStatus(editingOrder.id, status, adminComment);
 
-    await ctx.reply(`✅ Статус заказа #${orderId} изменен на "${status}"`);
+    await ctx.reply(`✅ Статус заказа #${editingOrder.id} изменен на "${status}"`);
 
     // Уведомляем пользователя
-    const order = db.getOrderById(orderId);
-    if (order) {
-        const user = db.getUser(order.user_id);
+    // const order = db.getOrderById(orderId);
+    if (editingOrder) {
+        const user = db.getUserById(editingOrder.user_id);
         if (user) {
             try {
                 await ctx.api.sendMessage(
                     user.telegram_id,
-                    `📦 Статус вашего заказа #${orderId} изменен на "${status}"\n💬 Комментарий администратора: ${adminComment}`
+                    `📦 Статус вашего заказа #${editingOrder.id} изменен на "${status}"\n💬 Комментарий администратора: ${adminComment}`
                 );
             } catch (error) {
                 console.error('Error notifying user:', error);
