@@ -30,7 +30,7 @@ export async function showCatalog(ctx, page = 0) {
 
                 // Используем разные клавиатуры для админа и обычных пользователей
                 const keyboard = isAdmin(ctx.from.id) 
-                    ? getAdminProductKeyboard(product, categoryId)
+                    ? getAdminProductKeyboard(product, product.is_available)
                     : getCatalogNavigationKeyboard(product, categoryId);
 
                 // if (product.image_url) {

@@ -393,7 +393,7 @@ async function updateProductMessage(ctx, productId) {
         // Получаем категорию из контекста или из продукта
         const categoryId = product.category_id;
         
-        const keyboard = getAdminProductKeyboard(product, categoryId);
+        const keyboard = getAdminProductKeyboard(product, product.is_available);
         
         // if (product.image_url) {
         //     try {
@@ -434,5 +434,46 @@ export async function showUsers(ctx) {
     } catch (error) {
         console.error('Error showing users:', error);
         await ctx.reply('❌ Произошла ошибка при загрузке пользователей');
+    }
+}
+
+export async function toggleProductAvailability(ctx) {
+    if (!isAdmin(ctx.from.id)) {
+        await ctx.answerCallbackQuery('❌ Недостаточно прав');
+        return;
+    }
+    
+
+    try {
+        const productId = parseInt(ctx.callbackQuery.data.split(':')[1]);
+        const product = db.getProductById(productId);
+        
+        if (!product) {
+            await ctx.answerCallbackQuery('❌ Товар не найден');
+            return;
+        }
+        
+        // Переключаем доступность
+        const newAvailability = !product.is_available;
+        db.toggleProductAvailability(productId, newAvailability);
+        
+        const statusText = newAvailability ? 'доступен' : 'скрыт';
+        const emoji = newAvailability ? '✅' : '❌';
+        
+        await ctx.answerCallbackQuery(`${emoji} Товар теперь ${statusText}`);
+        
+        // Обновляем сообщение
+        try {
+            await ctx.editMessageReplyMarkup({
+                reply_markup: getAdminProductKeyboard(product, newAvailability)
+            });
+        } catch (editError) {
+            // Если не удалось обновить сообщение, просто отправляем ответ
+            console.log('Could not update message markup');
+        }
+        
+    } catch (error) {
+        console.error('Error toggling product availability:', error);
+        await ctx.answerCallbackQuery('❌ Ошибка при изменении статуса');
     }
 }

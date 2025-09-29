@@ -129,7 +129,7 @@ class ShopDatabase {
             `),
             getAllProducts: this.db.prepare('SELECT p.*, c.name AS category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id ORDER BY p.created_at ASC'),
             getAllAvailableProducts: this.db.prepare('SELECT p.*, c.name AS category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.is_available = TRUE ORDER BY p.created_at ASC'),
-            getProductById: this.db.prepare('SELECT p.*, c.name AS category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ? AND p.is_available = TRUE'),
+            getProductById: this.db.prepare('SELECT p.*, c.name AS category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?'),
             addProduct: this.db.prepare(`
                 INSERT INTO products (name, description, price, category_id, image_url, stock) 
                 VALUES (?, ?, ?, ?, ?, ?)
@@ -139,6 +139,8 @@ class ShopDatabase {
                 UPDATE products SET name = ?, description = ?, price = ?, category_id = ?, 
                 image_url = ?, stock = ?, is_available = ? WHERE id = ?
             `),
+            toggleProductAvailability: this.db.prepare('UPDATE products SET is_available = ? WHERE id = ?'),
+            getProductAvailability: this.db.prepare('SELECT is_available FROM products WHERE id = ?'),
             updateProductStock: this.db.prepare(`
                 UPDATE products SET stock = ? WHERE id = ?
             `),
@@ -306,6 +308,15 @@ class ShopDatabase {
     updateProductStock(productId, newStock) {
         const result = this.stmts.updateProductStock.run(newStock, productId);
         return result.changes;
+    }
+    toggleProductAvailability(productId, isAvailable) {
+        const result = this.stmts.toggleProductAvailability.run(isAvailable ? 1 : 0, productId);
+        return result.changes;
+    }
+    
+    getProductAvailability(productId) {
+        const result = this.stmts.getProductAvailability.get(productId);
+        return result ? result.is_available === 1 : false;
     }
 
     // Методы для работы с корзиной

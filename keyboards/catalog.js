@@ -37,9 +37,9 @@ export function getCatalogNavigationKeyboard(product = null, categoryId = null) 
     return InlineKeyboard.from(keyboard);
 }
 
-export function getAdminProductKeyboard(product, categoryId = null) {
+export function getAdminProductKeyboard(product, newAvailability) {
     const keyboard = [];
-    
+    const availabilityIcon = newAvailability ? '✅' : '❌';
     // Кнопки изменения количества для администратора
     keyboard.push([
         InlineKeyboard.text('➖', `admin_decrease_stock:${product.id}`),
@@ -72,6 +72,9 @@ export function getAdminProductKeyboard(product, categoryId = null) {
     navButtons2.push(
         InlineKeyboard.text('🗑️', `admin_delete_product:${product.id}`)
     );
+    navButtons2.push(
+        InlineKeyboard.text(`${availabilityIcon} ${newAvailability ? 'Доступен' : 'Скрыт'}`, `toggle_availability:${product.id}`)
+    )
     
     if (product.image_url) {
         navButtons2.push(

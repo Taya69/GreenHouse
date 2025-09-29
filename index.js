@@ -45,7 +45,8 @@ import {
     handleDecreaseStock,
     handleAddCategory,
     showAdminOrdersByStatus,
-    showUsers
+    showUsers,
+    toggleProductAvailability
 } from './handlers/admin.js';
 
 import {
@@ -184,6 +185,7 @@ bot.callbackQuery(/category_(\d+)/, showCatalog);
 bot.callbackQuery(/^admin_set_status:/, handleOrderStatusChange);
 bot.callbackQuery(/^admin_delete_product:/, handleInlineDeleteProduct);
 bot.callbackQuery(/^admin_edit_product:/, handleInlineEditProduct);
+bot.callbackQuery(/^toggle_availability:/, toggleProductAvailability);
 bot.callbackQuery('admin_add_category', handleAddCategory);
 bot.callbackQuery(/^admin_delete_category:/, handleInlineDeleteCategory);
 bot.callbackQuery(/^admin_edit_category:/, handleInlineEditCategory);
