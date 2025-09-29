@@ -30,7 +30,8 @@ export async function addProduct(conversation, ctx) {
         await ctx.reply('❌ Добавление товара отменено.');
         return;
     }
-    const price = parseFloat(priceMsg.message.text);
+    
+    const price = parseFloat(priceMsg.message.text.replace(',', '.'));
     
     if (isNaN(price)) {
         await ctx.reply('❌ Пожалуйста, введите корректную цену (число)');
@@ -80,7 +81,7 @@ export async function addProduct(conversation, ctx) {
         await ctx.reply('❌ Добавление товара отменено.');
         return;
     }
-    const stock = parseInt(stockMsg.message.text);
+    const stock = parseFloat(stockMsg.message.text.replace(',', '.'));
 
     if (isNaN(stock)) {
         await ctx.reply('❌ Пожалуйста, введите корректное количество (число)');
@@ -172,9 +173,10 @@ export async function checkoutFromCart(conversation, ctx) {
     try {
         const orderId = db.createOrder(user.id, cartItems, totalAmount, userComment);
         db.clearCart(user.id);
+        const order = db.getOrderById(orderId);
 
         await ctx.reply(
-            `✅ Заказ #${orderId} оформлен успешно!\n` +
+            `✅ Заказ #${order.user_order_number} оформлен успешно!\n` +
             `💵 Сумма: ${totalAmount} руб.\n` +
             `📊 Статус: ${getOrderStatusText('created')}`
         );
@@ -183,7 +185,7 @@ export async function checkoutFromCart(conversation, ctx) {
         for (const adminId of config.ADMIN_IDS) {
             await ctx.api.sendMessage(
                 adminId,
-                `🛎️ Новый заказ #${orderId}\n💵 Сумма: ${totalAmount} руб.\n👤 Клиент: ${ctx.from.first_name}`
+                `🛎️ Новый заказ #${orderId} пользовательский (${order.user_order_number})\n💵 Сумма: ${totalAmount} руб.\n👤 Клиент: ${ctx.from.first_name}`
             );
         }
     } catch (error) {
@@ -227,7 +229,7 @@ export async function editProduct(conversation, ctx) {
 
     await ctx.reply('💰 Новая цена (число, или "-" чтобы пропустить):');
     const priceMsg = await conversation.wait();
-    const priceText = priceMsg.message.text.trim();
+    const priceText = priceMsg.message.text.trim().replace(',', '.');
 
     let categoryId;
     let catText;
@@ -264,7 +266,7 @@ export async function editProduct(conversation, ctx) {
 
     await ctx.reply('📦 Новое количество на складе (число, или "-" чтобы пропустить):');
     const stockMsg = await conversation.wait();
-    const stockText = stockMsg.message.text.trim();
+    const stockText = stockMsg.message.text.trim().replace(',', '.');
 
     await ctx.reply('🟢 Доступность товара (1/0, или "-" чтобы пропустить):');
     const availMsg = await conversation.wait();
@@ -276,7 +278,7 @@ export async function editProduct(conversation, ctx) {
         price: priceText === '-' ? product.price : parseFloat(priceText),
         category_id: categoryId === '-' ? product.category_id : parseInt(categoryId),
         image_url: imgText === '-' ? product.image_url : imgText,
-        stock: stockText === '-' ? product.stock : parseInt(stockText),
+        stock: stockText === '-' ? product.stock : parseFloat(stockText),
         is_available: availText === '-' ? product.is_available : parseInt(availText)
     };
 
@@ -413,7 +415,7 @@ export async function updateOrderStatus(conversation, ctx) {
             try {
                 await ctx.api.sendMessage(
                     user.telegram_id,
-                    `📦 Статус вашего заказа #${editingOrder.id} изменен на "${status}"\n💬 Комментарий администратора: ${adminComment}`
+                    `📦 Статус вашего заказа #${editingOrder.user_order_number} изменен на "${getOrderStatusText(status)}"\n💬 Комментарий администратора: ${adminComment}`
                 );
             } catch (error) {
                 console.error('Error notifying user:', error);

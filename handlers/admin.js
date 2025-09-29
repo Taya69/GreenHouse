@@ -60,7 +60,7 @@ export async function showAllOrders(ctx) {
     for (const order of orders.slice(0, 10)) {
         const orderDetails = db.getOrderDetails(order.id);
         
-        let message = `📦 *Заказ #${order.id}*\n`;
+        let message = `📦 *Заказ #${order.id}* (Пользовательский #${order.user_order_number})\n`;
         message += `👤 Клиент: ${order.first_name} (@${order.username || 'нет'})\n`;
         message += `📞 Телефон: ${order.phone || 'не указан'}\n`;
         message += `💵 Сумма: ${order.total_amount} руб.\n`;
@@ -136,7 +136,7 @@ export async function showOrdersByStatus(ctx) {
     }
     for (const order of orders.slice(0, 10)) {
         const orderDetails = db.getOrderDetails(order.id);
-        let message = `📦 *Заказ #${order.id}*\n`;
+        let message = `📦 *Заказ #${order.id}* (Пользовательский #${order.user_order_number})\n`;
         message += `👤 Клиент: ${order.first_name} (@${order.username || 'нет'})\n`;
         message += `📞 Телефон: ${order.phone || 'не указан'}\n`;
         message += `💵 Сумма: ${order.total_amount} руб.\n`;

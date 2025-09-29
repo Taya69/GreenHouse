@@ -44,7 +44,7 @@ class ShopDatabase {
                 description TEXT,
                 price REAL NOT NULL,                
                 image_url TEXT,
-                stock INTEGER DEFAULT 0,
+                stock REAL DEFAULT 0,
                 is_available BOOLEAN DEFAULT TRUE,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE CASCADE
@@ -69,7 +69,8 @@ class ShopDatabase {
         this.db.exec(`
             CREATE TABLE IF NOT EXISTS orders (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
+                user_id INTEGER, 
+                user_order_number INTEGER,             
                 total_amount REAL,
                 status TEXT DEFAULT 'created',
                 admin_comment TEXT DEFAULT '',
@@ -165,9 +166,10 @@ class ShopDatabase {
             
             // Order statements
             createOrder: this.db.prepare(`
-                INSERT INTO orders (user_id, total_amount, user_comment) 
-                VALUES (?, ?, ?)
+                INSERT INTO orders (user_id, user_order_number, total_amount, user_comment) 
+                VALUES (?, ?, ?, ?)
             `),
+            getLastUserOrderNumber: this.db.prepare('SELECT user_order_number FROM orders WHERE user_id = ? ORDER BY user_order_number DESC LIMIT 1'),
             createOrderItem: this.db.prepare(`
                 INSERT INTO order_items (order_id, product_id, quantity, price) 
                 VALUES (?, ?, ?, ?)
@@ -176,8 +178,9 @@ class ShopDatabase {
                 SELECT o.* 
                 FROM orders o 
                 WHERE o.user_id = ? 
-                ORDER BY o.created_at ASC
+                ORDER BY o.user_order_number ASC
             `),
+            getOrderByUserNumber: this.db.prepare('SELECT * FROM orders WHERE user_id = ? AND user_order_number = ?'),
             getAllOrders: this.db.prepare(`
                 SELECT o.*, u.first_name, u.username, u.phone 
                 FROM orders o 
@@ -348,11 +351,17 @@ class ShopDatabase {
         return result.changes;
     }
 
+    getNextUserOrderNumber(userId) {
+        const lastOrder = this.stmts.getLastUserOrderNumber.get(userId);
+        return lastOrder ? lastOrder.user_order_number + 1 : 1;
+    }
+
     // Методы для работы с заказами
     createOrder(userId, items, totalAmount, userComment = '') {
         return this.db.transaction(() => {
             // Создаем заказ
-            const orderResult = this.stmts.createOrder.run(userId, totalAmount, userComment);
+            const userOrderNumber = this.getNextUserOrderNumber(userId);
+            const orderResult = this.stmts.createOrder.run(userId, userOrderNumber, totalAmount, userComment);
             const orderId = orderResult.lastInsertRowid;
 
             // Добавляем элементы заказа
@@ -371,6 +380,10 @@ class ShopDatabase {
 
     getUserOrders(userId) {
         return this.stmts.getUserOrders.all(userId);
+    }
+
+    getOrderByUserNumber(userId, userOrderNumber) {
+        return this.stmts.getOrderByUserNumber.get(userId, userOrderNumber);
     }
 
     getAllOrders() {

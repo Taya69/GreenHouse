@@ -63,6 +63,7 @@ import { getMainKeyboard } from './keyboards/main.js';
 import { isAdmin } from './utils/helpers.js';
 import { getAdminKeyboard } from './keyboards/admin.js';
 import { getCategoriesKeyboard } from './keyboards/categories.js';
+import { migrateOrdersToUserNumbers } from './utils/migration.js';
 
 
 dotenv.config();
@@ -139,6 +140,8 @@ bot.command('categories', showAdminCategories);
 bot.command('add_product', handleAddProduct);
 bot.command('add_category', handleAddProductCategory);
 bot.command('users', showUsers);
+bot.command('migrate', migrateOrdersToUserNumbers);
+
 
 // Текстовые сообщения
 // bot.hears('🚀 Start', handleStartButton);

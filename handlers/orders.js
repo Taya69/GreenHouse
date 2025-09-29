@@ -41,7 +41,7 @@ export async function showUserOrdersByStatus(ctx, status) {
         for (const order of orders) {
             const orderDetails = db.getOrderDetails(order.id);
             
-            let message = `📦 *Заказ #${order.id}*\n`;
+            let message = `📦 *Заказ #${order.user_order_number}*\n`;
             message += `💵 Сумма: ${order.total_amount} руб.\n`;
             message += `📅 Дата: ${new Date(order.created_at).toLocaleDateString()}\n`;
             message += `📊 Статус: ${getOrderStatusText(order.status)}\n`;
@@ -124,7 +124,7 @@ async function notifyAdminAboutOrderCancellation(ctx, order, user) {
         const orderDetails = db.getOrderDetails(order.id);
         
         let message = `🚨 *УВЕДОМЛЕНИЕ ОБ ОТМЕНЕ ЗАКАЗА*\n\n`;
-        message += `📦 *Заказ #${order.id}* отменён пользователем\n`;
+        message += `📦 *Заказ #${order.id}*  (Пользовательский #${order.user_order_number}) отменён пользователем\n`;
         message += `👤 *Пользователь:* ${user.first_name} ${user.last_name || ''}\n`;
         message += `📱 *Telegram ID:* ${user.telegram_id}\n`;
         message += `📞 *Телефон:* ${user.phone || 'Не указан'}\n`;
