@@ -1,7 +1,10 @@
 import db from '../database.js';
 import config from '../config.js';
+
 import { getCategoriesInlineKeyboard } from '../keyboards/categories.js';
 import { getOrderStatusText } from '../utils/helpers.js';
+// import * as config from 'dotenv';
+// config.config();
 
 function isCancelText(text) {
     if (!text) return false;
@@ -183,6 +186,7 @@ export async function checkoutFromCart(conversation, ctx) {
 
         // Уведомление администраторов
         for (const adminId of config.ADMIN_IDS) {
+            console.log(adminId);
             await ctx.api.sendMessage(
                 adminId,
                 `🛎️ Новый заказ #${orderId} пользовательский (${order.user_order_number})\n💵 Сумма: ${totalAmount} руб.\n👤 Клиент: ${ctx.from.first_name}`
@@ -397,15 +401,15 @@ export async function updateOrderStatus(conversation, ctx) {
 
     // const { orderId, status } = editingOrder;
 
-    await ctx.reply(`Введите комментарий для статуса "${status}":`);
+    await ctx.reply(`Введите комментарий для статуса "${getOrderStatusText(status)}":`);
     const commentMsg = await conversation.wait();
 
-    console.log(editingOrder);
+    // console.log(editingOrder);
     const adminComment = editingOrder.admin_comment + " \n" + commentMsg.message.text;
     
     db.updateOrderStatus(editingOrder.id, status, adminComment);
 
-    await ctx.reply(`✅ Статус заказа #${editingOrder.id} изменен на "${status}"`);
+    await ctx.reply(`✅ Статус заказа #${editingOrder.id} изменен на "${getOrderStatusText(status)}"`);
 
     // Уведомляем пользователя
     // const order = db.getOrderById(orderId);
