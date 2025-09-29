@@ -68,11 +68,7 @@ export function getOrderStatusKeyboard(orderId) {
         ],
         [
             InlineKeyboard.text('🚚 Исполнен', `admin_set_status:${orderId}:completed`),
-            InlineKeyboard.text('❌ Отклонён', `admin_set_status:${orderId}:rejected`)
-            // InlineKeyboard.text('❌ Отменён', `admin_set_status:${orderId}:cancelled`)            
+            InlineKeyboard.text('❌ Отклонён', `admin_set_status:${orderId}:rejected`)         
         ]
-        // [
-        //     InlineKeyboard.text('⬅️ Назад', `admin_order_back:${orderId}`)
-        // ]
     ]);
 }

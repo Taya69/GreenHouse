@@ -5,14 +5,7 @@ import { isAdmin } from '../utils/helpers.js';
 import config from '../config.js';
 
 export async function handleStart(ctx) {
-    // const user = db.getUser(ctx.from.id);
-    
-    // if (!user) {
-    //     await db.createUser(ctx.from);
-    //     await sendWelcomeMessage(ctx, true);
-    // } else {
-    //     await sendWelcomeMessage(ctx, false);
-    // }
+
      const user = await db.getUser(ctx.from.id);
 
     if (!user) {

@@ -34,15 +34,3 @@ export function getMainKeyboard() {
     // return Keyboard.keyboard(keyboard).resize();
     return mainMenu;
 }
-
-// export function getStartKeyboard() {
-//     return Keyboard.keyboard([
-//         ['🚀 Start']
-//     ]).resize().oneTime();
-// }
-
-export function getBackKeyboard() {
-    return Keyboard.keyboard([
-        ['⬅️ Назад']
-    ]).resize();
-}

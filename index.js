@@ -13,19 +13,17 @@ import {
 
 import {
     showCatalog,
-    handleAddToCart,
-    handleCatalogNavigation
+    handleAddToCart
 } from './handlers/catalog.js';
 
 import {
     showCart,
-    handleRemoveFromCart,
     handleClearCart,
-    handleCheckout,
-    handleCartIncrease,
-    handleCartDecrease,    
+    handleCheckout,   
     handleCartIncreaseInProduct,
-    handleCartDecreaseInProduct
+    handleCartDecreaseInProduct,
+    handleCartIncreaseInCart,
+    handleCartDecreaseInCart
 } from './handlers/cart.js';
 
 import { showUserOrders, handleUserOrderStatusFilter, handleUserCancelOrder } from './handlers/orders.js';
@@ -119,9 +117,6 @@ bot.use(createConversation(editProduct));
 bot.use(createConversation(editCategory));
 bot.use(createConversation(updateOrderStatus));
 
-
-
-
 // Клавиатуры
 
 bot.use(getMainKeyboard());
@@ -139,12 +134,6 @@ bot.command('admin', showAdminPanel);
 bot.command('stats', showAdminStats);
 bot.command('orders_all', showAllOrders);
 bot.command('orders_by_status', showAdminOrdersByStatus);
-bot.callbackQuery(/^admin_filter_status:(.*)$/, async (ctx) => {
-    const status = ctx.match[1];
-    ctx.session.filterStatus = status;
-    await ctx.deleteMessage().catch(() => {});
-    await showOrdersByStatus(ctx);
-});
 bot.command('categories', showAdminCategories);
 bot.command('add_product', handleAddProduct);
 bot.command('add_category', handleAddProductCategory);
@@ -152,27 +141,21 @@ bot.command('users', showUsers);
 
 // Текстовые сообщения
 // bot.hears('🚀 Start', handleStartButton);
-bot.hears('🛍️ Каталог', (ctx) => showCatalog(ctx, 0));
-bot.hears('🛒 Корзина', showCart);
-bot.hears('📦 Мои заказы', showUserOrders);
-bot.hears('👑 Админ панель', showAdminPanel);
-bot.hears('⬅️ Главное меню', handleMainMenu);
-bot.hears('📊 Статистика', showAdminStats);
-bot.hears('📦 Заказы', showAllOrders);
-bot.hears('➕ Добавить товар', handleAddProduct);
-bot.hears('➕ Добавить категорию', handleAddProductCategory);
-bot.hears('⬅️ Назад', handleMainMenu);
+// bot.hears('🛍️ Каталог', (ctx) => showCatalog(ctx, 0));
+// bot.hears('🛒 Корзина', showCart);
+// bot.hears('📦 Мои заказы', showUserOrders);
+// bot.hears('👑 Админ панель', showAdminPanel);
+// bot.hears('⬅️ Главное меню', handleMainMenu);
+// bot.hears('📊 Статистика', showAdminStats);
+// bot.hears('📦 Заказы', showAllOrders);
+// bot.hears('➕ Добавить товар', handleAddProduct);
+// bot.hears('➕ Добавить категорию', handleAddProductCategory);
+// bot.hears('⬅️ Назад', handleMainMenu);
 
 // Callback queries
 bot.callbackQuery('main_menu', handleMainMenu);
 bot.callbackQuery('start_shopping', handleMainMenu);
 bot.callbackQuery('admin_menu', showAdminPanel);
-
-bot.callbackQuery('back_to_catalog', async (ctx) => {
-    await ctx.deleteMessage();
-    await showCatalog(ctx, 0);
-});
-
 bot.callbackQuery('show_cart', async (ctx) => {
     await ctx.deleteMessage();
     await showCart(ctx);
@@ -183,29 +166,35 @@ bot.callbackQuery('show_categories', async (ctx) => {
                    reply_markup: getCategoriesKeyboard()
                });
            });
-
 bot.callbackQuery(/^add_to_cart:/, handleAddToCart);
-bot.callbackQuery(/^catalog_page:/, handleCatalogNavigation);
-bot.callbackQuery(/^remove_from_cart:/, handleRemoveFromCart);
-bot.callbackQuery(/^cart_increase:/, handleCartIncrease);
-bot.callbackQuery(/^cart_decrease:/, handleCartDecrease);
+// bot.callbackQuery(/^catalog_page:/, handleCatalogNavigation);
+// bot.callbackQuery(/^remove_from_cart:/, handleRemoveFromCart);
+bot.callbackQuery(/^cart_increase:/, handleCartIncreaseInCart);
+bot.callbackQuery(/^cart_decrease:/, handleCartDecreaseInCart);
 bot.callbackQuery(/^cart_increase_in_product:/, handleCartIncreaseInProduct);
 bot.callbackQuery(/^cart_decrease_in_product:/, handleCartDecreaseInProduct);
 bot.callbackQuery('clear_cart', handleClearCart);
-// bot.callbackQuery('update_cart', handleUpdateCart);
 bot.callbackQuery('checkout', handleCheckout);
+bot.callbackQuery(/^user_filter_status:/, handleUserOrderStatusFilter);
+bot.callbackQuery(/^user_cancel_order:/, handleUserCancelOrder);
+
+bot.callbackQuery('noop', (ctx) => ctx.answerCallbackQuery()); // Обработчик для кнопки с количеством
+bot.callbackQuery(/category_(\d+)/, showCatalog); 
+
 bot.callbackQuery(/^admin_set_status:/, handleOrderStatusChange);
 bot.callbackQuery(/^admin_delete_product:/, handleInlineDeleteProduct);
 bot.callbackQuery(/^admin_edit_product:/, handleInlineEditProduct);
+bot.callbackQuery('admin_add_category', handleAddCategory);
 bot.callbackQuery(/^admin_delete_category:/, handleInlineDeleteCategory);
 bot.callbackQuery(/^admin_edit_category:/, handleInlineEditCategory);
 bot.callbackQuery(/^admin_increase_stock:/, handleIncreaseStock);
 bot.callbackQuery(/^admin_decrease_stock:/, handleDecreaseStock);
-bot.callbackQuery(/^user_filter_status:/, handleUserOrderStatusFilter);
-bot.callbackQuery(/^user_cancel_order:/, handleUserCancelOrder);
-bot.callbackQuery('admin_add_category', handleAddCategory);
-bot.callbackQuery('noop', (ctx) => ctx.answerCallbackQuery()); // Обработчик для кнопки с количеством
-bot.callbackQuery(/category_(\d+)/, showCatalog); 
+bot.callbackQuery(/^admin_filter_status:(.*)$/, async (ctx) => {
+    const status = ctx.match[1];
+    ctx.session.filterStatus = status;
+    await ctx.deleteMessage().catch(() => {});
+    await showOrdersByStatus(ctx);
+});
 
 
 // Обработка неизвестных команд

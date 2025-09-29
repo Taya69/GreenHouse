@@ -10,11 +10,7 @@ export function getCartKeyboard(cartItems) {
             InlineKeyboard.text('➖', `cart_decrease:${item.product_id}`),
             InlineKeyboard.text(`${item.quantity}`, 'noop'),
             InlineKeyboard.text('➕', `cart_increase:${item.product_id}`)
-        ]);
-        
-        // keyboard.push([
-        //     InlineKeyboard.text(`❌ Удалить ${item.name.substring(0, 15)}`, `remove_from_cart:${item.product_id}`)
-        // ]);
+        ]); 
     });
 
     // Основные действия

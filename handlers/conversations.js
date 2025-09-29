@@ -253,14 +253,10 @@ export async function editProduct(conversation, ctx) {
         } else if (categoryCtx.message && isCancelText(categoryCtx.message.text)) {
             categoryId = '-';
             break;
-            // await ctx.reply('❌ Добавление товара отменено.');
-            // return;
         }
      
-    }   
-    // await ctx.reply('📂 Новый ID категории (число, или "-" чтобы пропустить):');
-    // const catMsg = await conversation.wait();
-    // catText = catMsg.message.text.trim();
+    }  
+
 
     await ctx.reply('🖼️ Новый URL изображения (или "-" чтобы пропустить):');
     const imgMsg = await conversation.wait();

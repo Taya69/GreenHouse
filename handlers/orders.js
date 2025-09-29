@@ -113,10 +113,6 @@ export async function handleUserCancelOrder(ctx) {
         // Отправляем уведомление администратору
         await notifyAdminAboutOrderCancellation(ctx, order, user);
         
-        // Обновляем сообщение
-        // await ctx.deleteMessage();
-        // await showUserOrdersByStatus(ctx, 'all');
-        
     } catch (error) {
         console.error('Error cancelling order:', error);
         await ctx.answerCallbackQuery('❌ Произошла ошибка при отмене заказа');
@@ -152,16 +148,6 @@ async function notifyAdminAboutOrderCancellation(ctx, order, user) {
                 console.error(`Failed to notify admin ${adminId}:`, error);
             }
         }
-        // for (const admin of admins) {
-        //     try {
-        //         await ctx.api.sendMessage(admin.telegram_id, message, {
-        //             parse_mode: 'Markdown'
-        //         });
-        //     } catch (error) {
-        //         console.error(`Failed to notify admin ${admin.telegram_id}:`, error);
-        //     }
-        // }
-        
     } catch (error) {
         console.error('Error notifying admin about order cancellation:', error);
     }

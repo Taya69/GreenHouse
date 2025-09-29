@@ -1,6 +1,6 @@
 import db from '../database.js';
 import { InlineKeyboard, InputFile } from 'grammy';
-import { getCatalogNavigationKeyboard, getProductKeyboard, getAdminProductKeyboard } from '../keyboards/catalog.js';
+import { getCatalogNavigationKeyboard, getAdminProductKeyboard } from '../keyboards/catalog.js';
 import { getMainKeyboard } from '../keyboards/main.js';
 import config from '../config.js';
 import { isAdmin } from '../utils/helpers.js';
@@ -90,12 +90,6 @@ export async function handleAddToCart(ctx) {
         console.error('Error adding to cart:', error);
         await ctx.answerCallbackQuery('❌ Ошибка при добавлении в корзину');
     }
-}
-
-export async function handleCatalogNavigation(ctx) {
-    const page = parseInt(ctx.callbackQuery.data.split(':')[1]);
-    await ctx.deleteMessage();
-    await showCatalog(ctx, page);
 }
 
 export async function handleBackToCatalog(ctx) {
