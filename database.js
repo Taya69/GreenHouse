@@ -2,13 +2,13 @@ import Database from 'better-sqlite3';
 // import { formatIncompletePhoneNumber } from 'libphonenumber-js';
 // const config = require('./config');
 // import * as config from './config.js';
-// import config from './config.js';
-import * as config from 'dotenv';
-config.config();
+import config from './config.js';
+// import * as config from 'dotenv';
+// config.config();
 
 class ShopDatabase {
     constructor() {
-        this.db = new Database(process.env.DATABASE_PATH);
+        this.db = new Database(config.DATABASE_PATH);
         this.initDatabase();
     }
 

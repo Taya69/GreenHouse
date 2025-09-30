@@ -78,7 +78,8 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (reason, promise) => {
   console.error('⚠️ Необработанный промис:', promise, 'причина:', reason);
 });
-export const bot = new Bot(process.env.BOT_API_KEY);
+
+export const bot = new Bot(process.env.BOT_TOKEN);
 
 // Bot commands (menus)
 const userCommands = [
@@ -154,16 +155,6 @@ bot.command('migrate', migrateOrdersToUserNumbers);
 
 // Текстовые сообщения
 // bot.hears('🚀 Start', handleStartButton);
-// bot.hears('🛍️ Каталог', (ctx) => showCatalog(ctx, 0));
-// bot.hears('🛒 Корзина', showCart);
-// bot.hears('📦 Мои заказы', showUserOrders);
-// bot.hears('👑 Админ панель', showAdminPanel);
-// bot.hears('⬅️ Главное меню', handleMainMenu);
-// bot.hears('📊 Статистика', showAdminStats);
-// bot.hears('📦 Заказы', showAllOrders);
-// bot.hears('➕ Добавить товар', handleAddProduct);
-// bot.hears('➕ Добавить категорию', handleAddProductCategory);
-// bot.hears('⬅️ Назад', handleMainMenu);
 
 // Callback queries
 bot.callbackQuery('main_menu', handleMainMenu);
@@ -180,8 +171,6 @@ bot.callbackQuery('show_categories', async (ctx) => {
                });
            });
 bot.callbackQuery(/^add_to_cart:/, handleAddToCart);
-// bot.callbackQuery(/^catalog_page:/, handleCatalogNavigation);
-// bot.callbackQuery(/^remove_from_cart:/, handleRemoveFromCart);
 bot.callbackQuery(/^cart_increase:/, handleCartIncreaseInCart);
 bot.callbackQuery(/^cart_decrease:/, handleCartDecreaseInCart);
 bot.callbackQuery(/^cart_increase_in_product:/, handleCartIncreaseInProduct);
@@ -230,25 +219,8 @@ bot.catch((err) => {
     console.error('Bot error:', err);
 });
 
-async function startBot() {
-  try {
-    const bot = new Bot(process.env.BOT_TOKEN);
-    
-    // ... остальная настройка бота ...
-    
-    console.log('🤖 Бот запускается...');
-    await bot.start();
-    console.log('✅ Бот успешно запущен!');
-    
-  } catch (error) {
-    console.error('❌ Ошибка запуска бота:', error);
-    process.exit(1);
-  }
-}
-
 // Запуск бота
-startBot();
-// bot.start();
+bot.start();
 console.log('🤖 Бот GreenHouse запущен!');
 
 // Graceful shutdown
