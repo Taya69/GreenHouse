@@ -1,0 +1,10 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "node index.js"
+
+[[services]]
+name = "telegram-bot"
+[[services.ports]]
+port = 3000

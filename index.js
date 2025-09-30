@@ -69,6 +69,15 @@ import { migrateOrdersToUserNumbers } from './utils/migration.js';
 dotenv.config();
 
 // Инициализация бота
+// Обработка необработанных исключений
+process.on('uncaughtException', (error) => {
+  console.error('⚠️ Неперехваченное исключение:', error);
+  // Не выходим из процесса, чтобы бот продолжал работать
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('⚠️ Необработанный промис:', promise, 'причина:', reason);
+});
 export const bot = new Bot(process.env.BOT_API_KEY);
 
 // Bot commands (menus)
@@ -221,8 +230,25 @@ bot.catch((err) => {
     console.error('Bot error:', err);
 });
 
+async function startBot() {
+  try {
+    const bot = new Bot(process.env.BOT_TOKEN);
+    
+    // ... остальная настройка бота ...
+    
+    console.log('🤖 Бот запускается...');
+    await bot.start();
+    console.log('✅ Бот успешно запущен!');
+    
+  } catch (error) {
+    console.error('❌ Ошибка запуска бота:', error);
+    process.exit(1);
+  }
+}
+
 // Запуск бота
-bot.start();
+startBot();
+// bot.start();
 console.log('🤖 Бот GreenHouse запущен!');
 
 // Graceful shutdown
