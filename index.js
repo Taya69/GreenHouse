@@ -70,14 +70,14 @@ dotenv.config();
 
 // Инициализация бота
 // Обработка необработанных исключений
-process.on('uncaughtException', (error) => {
-  console.error('⚠️ Неперехваченное исключение:', error);
-  // Не выходим из процесса, чтобы бот продолжал работать
-});
+// process.on('uncaughtException', (error) => {
+//   console.error('⚠️ Неперехваченное исключение:', error);
+//   // Не выходим из процесса, чтобы бот продолжал работать
+// });
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('⚠️ Необработанный промис:', promise, 'причина:', reason);
-});
+// process.on('unhandledRejection', (reason, promise) => {
+//   console.error('⚠️ Необработанный промис:', promise, 'причина:', reason);
+// });
 
 export const bot = new Bot(process.env.BOT_TOKEN);
 
